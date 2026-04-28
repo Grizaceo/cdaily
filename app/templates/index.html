@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CDaily 🌿</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────────── -->
+<header class="header">
+    <div class="header-left">
+        <span class="logo">CDaily 🌿</span>
+    </div>
+    <div class="header-center">
+        <input
+            type="text"
+            id="search-input"
+            class="search-input"
+            placeholder="Buscar artículos..."
+            autocomplete="off"
+        >
+    </div>
+    <div class="header-right">
+        <button class="btn-icon" id="mark-all-btn" title="Marcar todos leídos">✓</button>
+        <button class="btn-icon" id="refresh-btn" title="Forzar scan">↻</button>
+    </div>
+</header>
+
+<!-- ── Filter Pills ──────────────────────────────────────────── -->
+<nav class="filter-bar" id="filter-bar">
+    <!-- Pills injected by JS -->
+</nav>
+
+<!-- ── Main Feed ────────────────────────────────────────────── -->
+<main class="feed-container" id="feed-container">
+    <div class="articles-grid" id="articles-grid">
+        <!-- Cards injected by JS -->
+    </div>
+    <div class="empty-state" id="empty-state" hidden>
+        <p>Todo al día 🌿</p>
+        <small>0 nuevos artículos</small>
+    </div>
+</main>
+
+<!-- ── Footer Status Bar ─────────────────────────────────────── -->
+<footer class="status-bar" id="status-bar">
+    <span id="unread-count">– unread</span>
+    <span>·</span>
+    <span id="last-scan">Last scan: –</span>
+    <span>·</span>
+    <span>blogwatcher-cli</span>
+</footer>
+
+<!-- ── Toast Container ────────────────────────────────────────── -->
+<div class="toast-container" id="toast-container"></div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>

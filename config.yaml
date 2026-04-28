@@ -1,0 +1,58 @@
+host: "0.0.0.0"
+port: 7890
+db_path: "~/.blogwatcher-cli/blogwatcher-cli.db"
+scan_interval_minutes: 30
+refresh_interval_seconds: 60
+log_level: "INFO"
+
+# Opciones de IA (On-Demand Summarization)
+ai_preferences:
+  enabled: true
+  endpoint: "http://100.109.185.52:12345/v1/chat/completions"
+  model: "qwen2.5-7b-instruct-1m" # Excelente para contexto largo en una RTX 4060
+  system_prompt: >
+    Eres un asistente personal para Cristóbal. Resume el siguiente artículo en 3 viñetas muy breves y directas (sin rodeos, sin "Aquí tienes..."). 
+    Enfócate en:
+    - Política: Implicaciones legales o movimientos estratégicos.
+    - Ciberseguridad: Vectores de ataque, parches, vulnerabilidades (CVEs).
+    - Ciencia/IA: Aplicaciones prácticas y avances comprobados.
+    - Economía/Otros: Datos duros y conclusiones.
+    Si el texto es muy corto o es un error, di "No hay contenido suficiente para resumir."
+
+# Mapeo blog name -> categoría CDaily
+# Las categorías se usan para los filtros visuales
+blog_categories:
+  "CIPER Chile":           politica
+  "BioBioChile":           politica
+  "Cambio21":              politica
+  "El Clarin":             politica
+  "The Clinic":             humor
+  "BBC Mundo":              internacional
+  "The Guardian Mundo":     internacional
+  "Ars Technica":           ciencia
+  "Science Daily":         ciencia
+  "Diario Financiero":     economia
+  "The Onion":             humor
+  "CyberScoop":            ciberseguridad
+  "Dark Reading":          ciberseguridad
+  "Help Net Security":     ciberseguridad
+  "Infosecurity Magazine": ciberseguridad
+  "Krebs on Security":     ciberseguridad
+  "MIT Tech Review AI":    ciencia
+  "SANS ISC":              ciberseguridad
+  "Schneier on Security":  ciberseguridad
+  "Talos Intelligence":    ciberseguridad
+  "The Hacker News":       ciberseguridad
+  "The Verge AI":          ciencia
+  "Unit 42 Palo Alto":     ciberseguridad
+  "We Live Security":      ciberseguridad
+
+# Emoji por categoría
+category_emoji:
+  politica:      "🏛️"
+  internacional: "🌎"
+  ciencia:       "🔬"
+  economia:      "💰"
+  humor:         "😂"
+  ciberseguridad: "🔐"
+  default:        "📰"

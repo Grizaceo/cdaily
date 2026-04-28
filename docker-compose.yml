@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  cdaily:
+    build: .
+    container_name: cdaily_widget
+    ports:
+      - "7890:7890"
+    volumes:
+      # Monta la base de datos de blogwatcher y la configuración
+      - ~/.blogwatcher-cli:/root/.blogwatcher-cli
+      - ./config.yaml:/app/config.yaml
+    restart: unless-stopped
+    environment:
+      - TZ=America/Santiago # Ajusta a tu zona horaria si es necesario
