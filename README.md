@@ -2,25 +2,25 @@
 
 Feed reader minimalista para hojear mientras trabajas. Lee directo del SQLite de blogwatcher-cli — sin duplicar datos.
 
-## Setup
+## Prerequisites
 
-### Prerrequisitos
 - Python 3.11+
-- blogwatcher-cli instalado (`~/.local/bin/blogwatcher-cli`)
-- blogwatcher-cli.db en `~/.blogwatcher-cli/` con blogs configurados
+- `blogwatcher-cli` installed (`~/.local/bin/blogwatcher-cli`)
+- `blogwatcher-cli.db` in `~/.blogwatcher-cli/` with blogs configured
+- SQLite3 with required schema (validated at startup)
 
-### Instalación
+## Installation
 
 ```bash
 cd ~/.hermes/workspace/repos/cdaily
 pip install -r requirements.txt
 python -m app.main
-# Abre http://localhost:7890
+# Open http://localhost:7890
 ```
 
-## Configuración
+## Configuration
 
-Edita `config.yaml`:
+Edit `config.yaml`:
 
 ```yaml
 host: "0.0.0.0"
@@ -29,24 +29,131 @@ db_path: "~/.blogwatcher-cli/blogwatcher-cli.db"
 scan_interval_minutes: 30
 refresh_interval_seconds: 60
 log_level: "INFO"
+
+# Blog → Category Mapping (defaults provided if omitted)
+blog_categories:
+  "CIPER Chile": "politica"
+  # ... more blogs
+
+# Category → Emoji Mapping (defaults provided if omitted)
+category_emoji:
+  "politica": "🏛️"
+  # ... more categories
+
+# AI Summarization (Optional)
+ai_preferences:
+  enabled: true
+  endpoint: "http://localhost:12345/v1/chat/completions"
+  model: "qwen2.5-7b-instruct-1m"
+  max_content_chars: 12000
+  system_prompt: "..."
 ```
 
-## Cronjob (auto-scan cada 30 min)
+### Environment Variables
+
+- `CDAILY_CONFIG`: Path to custom config.yaml (default: `./config.yaml`)
+- `CDAILY_AI_ENDPOINT`: Override AI endpoint (optional)
+
+## Automated Scanning with Cron
 
 ```bash
-# Abre crontab
 crontab -e
 
-# Agrega esta línea:
+# Add this line for auto-scan every 30 min:
 */30 * * * *  ~/.local/bin/blogwatcher-cli scan >> ~/.blogwatcher-cli/scan.log 2>&1
 ```
 
-## Uso
+## Usage
 
-1. `blogwatcher-cli scan` para poblar la base (ya tienes datos de la sesión de setup)
-2. `python -m app.main` para arrancar el server
-3. Abre http://localhost:7890
-4. Mantén la ventana abierta mientras trabajas
+1. Run `blogwatcher-cli scan` to populate the database
+2. Start the server: `python -m app.main`
+3. Open http://localhost:7890
+4. Use category filters, search, star articles, and add ratings
+5. Click ✨ button to generate AI summaries for articles
+
+## Docker
+
+```bash
+docker-compose up -d
+# App available at http://localhost:7890
+```
+
+## Development
+
+### Linting & Formatting
+
+```bash
+pip install black flake8
+black app tests           # Auto-format
+flake8 app tests         # Check linting
+```
+
+### Running Tests
+
+```bash
+pip install pytest
+pytest tests/ -v
+```
+
+### CI/CD
+
+GitHub Actions automatically runs lint and tests on push/PR to `main`.
+
+## Troubleshooting
+
+### "Database path does not exist"
+- Ensure `config.yaml` `db_path` points to a valid blogwatcher-cli.db
+- Check permissions: `ls -la ~/.blogwatcher-cli/blogwatcher-cli.db`
+
+### "Articles table missing columns"
+- Validate the blogwatcher-cli database schema
+- Run: `sqlite3 ~/.blogwatcher-cli/blogwatcher-cli.db ".schema articles"`
+- Should have columns: `id`, `title`, `url`, `published_date`, `is_read`, `blog_id`
+
+### "AI summarization disabled"
+- Set `ai_preferences.enabled: true` in config.yaml
+- Ensure AI endpoint is reachable: `curl http://endpoint/v1/chat/completions`
+
+### "Address already in use"
+- Check if port 7890 is in use: `lsof -i :7890`
+- Kill process or change port in config.yaml
+
+### App crashes on startup
+- Check logs for validation errors (missing config keys)
+- Ensure `db_path` exists and is readable
+- Verify blog_categories and category_emoji are not empty
+
+## Architecture
+
+### Backend (FastAPI)
+- `/api/articles` — List articles with filtering
+- `/api/articles/{id}/read` — Mark as read
+- `/api/articles/{id}/summarize` — Generate AI summary
+- `/api/stats` — Unread counts by category
+- `/api/scan` — Force blogwatcher-cli scan
+
+### Database
+- Reads from: blogwatcher-cli tables (`articles`, `blogs`)
+- Writes to: CDaily tables (`cdaily_starred`, `cdaily_summaries`, `cdaily_article_images`, `cdaily_article_ratings`)
+
+### Frontend (Vanilla JS + CSS)
+- Responsive masonry grid
+- Dark mode with glassmorphism design
+- Category filters with emoji badges
+- Real-time search and refresh
+
+## Features
+
+- **Personalization**: Rate articles (1-5 stars) to reorder feed
+- **AI Summaries**: On-demand OpenAI-compatible summarization
+- **Star & Read**: Mark for later or dismiss
+- **Search**: Real-time title search with highlighting
+- **Auto-refresh**: Configurable background polling
+- **Docker Ready**: docker-compose for easy deployment
+
+## License
+
+Personal project. Feel free to fork and customize.
 
 ## Agregar/quitar blogs
 
