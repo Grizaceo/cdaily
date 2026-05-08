@@ -1,11 +1,11 @@
 # models.py — Pydantic models for request/response validation
 
-from datetime import datetime
 from typing import Optional
 
 
 class ArticleResponse:
     """Outgoing article representation."""
+
     def __init__(
         self,
         id: int,
@@ -33,6 +33,7 @@ class ArticleResponse:
 
 class ArticlesListResponse:
     """Response for /api/articles."""
+
     def __init__(self, articles: list[ArticleResponse], count: int):
         self.articles = articles
         self.count = count
@@ -40,6 +41,7 @@ class ArticlesListResponse:
 
 class StatsResponse:
     """Response for /api/stats."""
+
     def __init__(self, total: int, by_category: dict[str, int]):
         self.total = total
         self.by_category = by_category
@@ -47,6 +49,7 @@ class StatsResponse:
 
 class ActionResponse:
     """Generic ok/error response."""
+
     def __init__(self, ok: bool, **kwargs):
         self.ok = ok
         for k, v in kwargs.items():

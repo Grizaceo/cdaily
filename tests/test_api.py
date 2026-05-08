@@ -38,9 +38,7 @@ def test_articles_exist(conn):
 
 def test_articles_have_required_columns(conn):
     """Articles must have the columns CDaily reads."""
-    cur = conn.execute(
-        "SELECT id, title, url, published_date, is_read FROM articles LIMIT 1"
-    )
+    cur = conn.execute("SELECT id, title, url, published_date, is_read FROM articles LIMIT 1")
     row = cur.fetchone()
     assert row is not None, "No articles to inspect"
     assert {"id", "title", "url", "published_date", "is_read"}.issubset(set(row.keys()))
