@@ -128,6 +128,21 @@ function bindEvents() {
             } finally {
                 btn.classList.remove("spinning");
             }
+        } else if (e.target.closest(".rating-star")) {
+            e.stopPropagation();
+            e.preventDefault();
+            const star = e.target.closest(".rating-star");
+            const rating = parseInt(star.dataset.rating);
+            const currentRating = parseInt(card.dataset.rating || "0");
+            const nextRating = currentRating === rating ? null : rating;
+            try {
+                const res = await api("POST", `/api/articles/${id}/rate`, { rating: nextRating });
+                const newRating = res.rating ?? null;
+                card.dataset.rating = newRating ?? "";
+                renderRatingStars(card.querySelector(".rating-control"), newRating);
+            } catch (err) {
+                toast("No se pudo guardar la nota");
+            }
         } else if (e.target.closest(".article-link")) {
             // Mark as read when clicking the title link
             await api("POST", `/api/articles/${id}/read`);
@@ -180,17 +195,25 @@ function renderArticles() {
         const isStarred = article.is_starred ? "is-starred" : "";
         const imgHtml = article.image_url
             ? `<div class="card-image" style="background-image: url('${escHtml(article.image_url)}')"></div>`
-            : "";
+            : `<div class="card-image is-placeholder" data-id="${article.id}">
+                 <div class="placeholder-icon">🖼️</div>
+               </div>`;
         const titleHtml = query
             ? highlightMatches(escHtml(article.title), query)
             : escHtml(article.title);
         const summaryHtml = article.summary
             ? `<p class="card-summary">${escHtml(truncate(article.summary, 180))}</p>`
             : "";
+        const ratingHtml = `
+            <div class="rating-control" data-rating="${article.user_rating ?? ""}">
+                ${renderRatingStarsHtml(article.user_rating)}
+            </div>
+        `;
 
         return `
             <article class="article-card ${isRead} ${isStarred}"
-                     data-id="${article.id}">
+                     data-id="${article.id}"
+                     data-rating="${article.user_rating ?? ""}">
                 ${imgHtml}
                 <div class="card-content">
                     <div class="card-header">
@@ -208,12 +231,50 @@ function renderArticles() {
                     <a class="article-link" href="${escHtml(article.url)}" target="_blank" rel="noopener">
                         <h2 class="card-title">${titleHtml}</h2>
                     </a>
+                    ${ratingHtml}
                     <div class="ai-summary-container" hidden></div>
                     ${summaryHtml}
                 </div>
             </article>
         `;
     }).join("");
+
+    // Trigger on-demand fetching for placeholders
+    document.querySelectorAll(".card-image.is-placeholder").forEach(el => {
+        fetchImageOnDemand(parseInt(el.dataset.id), el);
+    });
+}
+
+function renderRatingStarsHtml(rating) {
+    const value = Number.isInteger(rating) ? rating : 0;
+    let html = "";
+    for (let i = 1; i <= 5; i++) {
+        const active = i <= value ? "active" : "";
+        html += `<button class="rating-star ${active}" data-rating="${i}" title="Nota ${i}/5" aria-label="Nota ${i} de 5">★</button>`;
+    }
+    return html;
+}
+
+function renderRatingStars(container, rating) {
+    if (!container) return;
+    container.dataset.rating = rating ?? "";
+    container.innerHTML = renderRatingStarsHtml(rating);
+}
+
+async function fetchImageOnDemand(id, el) {
+    try {
+        const res = await api("GET", `/api/articles/${id}/image`);
+        if (res.image_url) {
+            el.style.backgroundImage = `url('${res.image_url}')`;
+            el.classList.remove("is-placeholder");
+            el.innerHTML = ""; // Clear placeholder icon
+        } else {
+            // Leave placeholder but maybe change icon to indicate none found
+            el.querySelector(".placeholder-icon").textContent = "🗞️";
+        }
+    } catch (err) {
+        console.error("Failed to fetch image on demand", err);
+    }
 }
 
 function renderFilters() {

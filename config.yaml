@@ -9,7 +9,8 @@ log_level: "INFO"
 ai_preferences:
   enabled: true
   endpoint: "http://100.109.185.52:12345/v1/chat/completions"
-  model: "qwen2.5-7b-instruct-1m" # Excelente para contexto largo en una RTX 4060
+  model: "qwen2.5-7b-instruct-1m"
+  max_content_chars: 12000 # Límite para evitar errores de contexto (n_ctx: 4352)
   system_prompt: >
     Eres un asistente personal para Cristóbal. Resume el siguiente artículo en 3 viñetas muy breves y directas (sin rodeos, sin "Aquí tienes..."). 
     Enfócate en:

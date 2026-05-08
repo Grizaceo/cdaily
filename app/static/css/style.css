@@ -213,6 +213,27 @@ body {
     background-size: cover;
     background-position: center;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    background-color: rgba(0, 0, 0, 0.2);
+    transition: background-image 0.5s ease-in-out, background-color 0.3s ease;
+}
+
+.card-image.is-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.05) 100%);
+}
+
+.placeholder-icon {
+    font-size: 32px;
+    opacity: 0.2;
+    filter: grayscale(1);
+    animation: pulse 2s infinite ease-in-out;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.1; transform: scale(0.95); }
+    50% { opacity: 0.25; transform: scale(1.05); }
 }
 
 .card-content {
@@ -386,4 +407,31 @@ mark {
 }
 .btn-summarize:hover {
     background: rgba(16, 185, 129, 0.15) !important;
+}
+
+/* ── Rating control ──────────────────────────────────────────────────────── */
+.rating-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.rating-star {
+    border: none;
+    background: transparent;
+    color: rgba(148, 163, 184, 0.6);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: color 120ms ease, transform 120ms ease;
+}
+
+.rating-star:hover {
+    color: #fbbf24;
+    transform: scale(1.08);
+}
+
+.rating-star.active {
+    color: #f59e0b;
 }

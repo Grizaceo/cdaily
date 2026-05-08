@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   cdaily:
     build: .
@@ -8,8 +6,7 @@ services:
       - "7890:7890"
     volumes:
       # Monta la base de datos de blogwatcher y la configuración
-      - ~/.blogwatcher-cli:/root/.blogwatcher-cli
-      - ./config.yaml:/app/config.yaml
+      - /home/gris/.blogwatcher-cli:/root/.blogwatcher-cli
     restart: unless-stopped
     environment:
       - TZ=America/Santiago # Ajusta a tu zona horaria si es necesario
