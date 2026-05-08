@@ -3,12 +3,15 @@ main.py — CDaily FastAPI application.
 Serves the feed UI and provides a JSON API backed by blogwatcher-cli SQLite.
 """
 
+import asyncio
+import logging
 import subprocess
 from pathlib import Path
+from typing import Any
 
 import httpx
 from bs4 import BeautifulSoup
-from fastapi import FastAPI, Query, Request, HTTPException
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -16,6 +19,7 @@ from fastapi.templating import Jinja2Templates
 from .config import CONFIG
 from .database import (
     get_articles,
+    get_articles_missing_images,
     get_article_url_and_summary,
     get_stats,
     init_db,
@@ -24,8 +28,11 @@ from .database import (
     mark_unread,
     save_ai_summary,
     save_article_og_image,
+    set_article_rating,
     toggle_star,
 )
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # ── App bootstrap ─────────────────────────────────────────────────────────────
 
@@ -40,17 +47,14 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 # ── Routes ───────────────────────────────────────────────────────────────────
 
+
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
     """
     Renders the main feed page.
     Category filter passed via query param ?cat=...
     """
-    return templates.TemplateResponse(
-        request=request, 
-        name="index.html", 
-        context={"config": CONFIG}
-    )
+    return templates.TemplateResponse(request=request, name="index.html", context={"config": CONFIG})
 
 
 @app.get("/api/articles")
@@ -100,14 +104,14 @@ async def api_summarize(article_id: int):
     ai_prefs = CONFIG.get("ai_preferences", {})
     if not ai_prefs.get("enabled"):
         raise HTTPException(status_code=400, detail="AI summarization is disabled in config.")
-        
+
     url, existing_summary = get_article_url_and_summary(article_id)
     if existing_summary:
         return {"ok": True, "summary": existing_summary, "cached": True}
-        
+
     if not url:
         return {"ok": False, "error": "Article has no URL to summarize."}
-        
+
     # Fetch content from URL
     try:
         async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
@@ -120,6 +124,7 @@ async def api_summarize(article_id: int):
             og_image = extract_og_image(html_content)
             if og_image:
                 from .database import save_article_og_image
+
                 save_article_og_image(article_id, og_image)
 
             # Extract plain text
@@ -137,31 +142,65 @@ async def api_summarize(article_id: int):
     endpoint = ai_prefs.get("endpoint")
     model = ai_prefs.get("model")
     system_prompt = ai_prefs.get("system_prompt", "Summarize this.")
-    
-    # Truncate slightly to avoid memory blowouts on huge articles
-    content_truncated = content[:30000] 
-    
+
+    # Truncate to avoid exceeding AI server context (n_ctx)
+    max_chars = ai_prefs.get("max_content_chars", 12000)
+    content_truncated = content[:max_chars]
+
+    logging.info(
+        f"Summarizing article {article_id} ({len(content)} chars) using model {model}. "
+        f"Sending {len(content_truncated)} chars."
+    )
     payload = {
         "model": model,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": content_truncated}
-        ],
-        "temperature": 0.3,
-        "max_tokens": 500
+        "messages": [{"role": "system", "content": system_prompt}, {"role": "user", "content": content_truncated}],
+        "temperature": 0.7,
+        "presence_penalty": 0.6,
+        "max_tokens": 500,
     }
-    
+
+    headers = {"Content-Type": "application/json"}
+    api_key = ai_prefs.get("api_key")
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
     try:
         async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.post(endpoint, json=payload)
-            response.raise_for_status()
+            response = await client.post(endpoint, json=payload, headers=headers)
+            if response.status_code != 200:
+                error_body = response.text
+                logging.error(f"AI Server Error ({response.status_code}): {error_body}")
+                return {"ok": False, "error": f"AI Server Error {response.status_code}: {error_body}"}
+
             data = response.json()
-            summary = data["choices"][0]["message"]["content"].strip()
-            
+            summary = extract_summary_text(data)
+            if not summary:
+                logging.error("AI response has no summary text: %s", data)
+                return {"ok": False, "error": "La IA respondió sin contenido de resumen."}
+            logging.info(f"AI Summary for {article_id}: {summary[:100]}...")
+
             save_ai_summary(article_id, summary)
             return {"ok": True, "summary": summary, "cached": False}
     except Exception as e:
+        logging.exception("Exception during AI summarization")
         return {"ok": False, "error": str(e)}
+
+
+@app.post("/api/articles/{article_id}/rate")
+def api_rate_article(article_id: int, payload: dict):
+    rating_raw = payload.get("rating")
+    if rating_raw is None:
+        rating = None
+    else:
+        try:
+            rating = int(rating_raw)
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail="rating must be an integer between 1 and 5, or null")
+        if rating < 1 or rating > 5:
+            raise HTTPException(status_code=400, detail="rating must be between 1 and 5")
+
+    new_rating = set_article_rating(article_id, rating)
+    return {"ok": True, "rating": new_rating}
 
 
 @app.post("/api/articles/read-all")
@@ -171,10 +210,10 @@ def api_mark_all_read():
 
 
 @app.post("/api/scan")
-def api_scan():
+async def api_scan(background_tasks: BackgroundTasks):
     """
     Runs blogwatcher-cli scan in the foreground.
-    Returns summary of what was found.
+    Then schedules background image fetching for new articles.
     """
     try:
         result = subprocess.run(
@@ -183,6 +222,9 @@ def api_scan():
             text=True,
             timeout=120,
         )
+        # Schedule background image fetching
+        background_tasks.add_task(fetch_missing_images)
+
         return {
             "ok": True,
             "stdout": result.stdout,
@@ -208,6 +250,7 @@ async def api_article_image(article_id: int):
     Returns {image_url: str|null, cached: bool}
     """
     from .database import get_article_og_image
+
     cached = get_article_og_image(article_id)
     if cached is not None:
         return {"image_url": cached, "cached": True}
@@ -230,18 +273,91 @@ async def api_article_image(article_id: int):
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
+
+async def fetch_missing_images(limit: int = 50):
+    """
+    Background task to fetch and cache images for articles that don't have one.
+    """
+    articles = get_articles_missing_images(limit=limit)
+    if not articles:
+        return
+
+    async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        for art in articles:
+            try:
+                resp = await client.get(art["url"], headers=headers)
+                if resp.status_code == 200:
+                    og_image = extract_og_image(resp.text)
+                    save_article_og_image(art["id"], og_image)
+                else:
+                    # Mark as attempted
+                    save_article_og_image(art["id"], None)
+            except Exception:
+                # Silently ignore fetch errors in background
+                save_article_og_image(art["id"], None)
+            # Rate limiting: wait 1 second between requests
+            await asyncio.sleep(1)
+
+
 def extract_og_image(html: str) -> str | None:
-    """Try to extract the og:image meta tag from HTML."""
+    """Try to extract the og:image meta tag from HTML with more aggressive fallbacks."""
     soup = BeautifulSoup(html, "html.parser")
-    # Try og:image first
+
+    # 1. Try og:image
     og = soup.find("meta", property="og:image")
     if og and og.get("content"):
         return og["content"].strip()
-    # Fallback: twitter:image
+
+    # 2. Try twitter:image
     tw = soup.find("meta", attrs={"name": "twitter:image"})
     if tw and tw.get("content"):
         return tw["content"].strip()
+
+    # 3. Fallback: first large-ish image in article body (if any)
+    # This is a bit heuristic, but better than nothing.
+    # Look for <img> tags that don't look like icons/tracking pixels.
+    for img in soup.find_all("img"):
+        src = img.get("src")
+        if not src:
+            continue
+        # Skip small icons/placeholders
+        if any(x in src.lower() for x in ["icon", "logo", "tracker", "pixel", "avatar"]):
+            continue
+        # Return the first absolute URL or meaningful relative URL
+        if src.startswith("http"):
+            return src
+
     return None
+
+
+def extract_summary_text(response_data: dict[str, Any]) -> str:
+    """
+    Extracts summary text from OpenAI-compatible response payloads.
+    Handles common variants from local inference gateways.
+    """
+    choices = response_data.get("choices")
+    if isinstance(choices, list) and choices:
+        first = choices[0]
+        if isinstance(first, dict):
+            message = first.get("message")
+            if isinstance(message, dict):
+                content = message.get("content")
+                if isinstance(content, str):
+                    return content.strip()
+                if isinstance(content, list):
+                    # Some APIs return content parts, e.g. [{"type":"text","text":"..."}]
+                    parts: list[str] = []
+                    for part in content:
+                        if isinstance(part, dict):
+                            text = part.get("text")
+                            if isinstance(text, str):
+                                parts.append(text)
+                    return "\n".join(p.strip() for p in parts if p.strip()).strip()
+            text = first.get("text")
+            if isinstance(text, str):
+                return text.strip()
+    return ""
 
 
 # ── Entry point ────────────────────────────────────────────────────────────────
