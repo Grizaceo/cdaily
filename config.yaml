@@ -8,7 +8,7 @@ log_level: "INFO"
 # Opciones de IA (On-Demand Summarization)
 ai_preferences:
   enabled: true
-  endpoint: "http://100.109.185.52:12345/v1/chat/completions"
+  endpoint: "http://host.docker.internal:12345/v1/chat/completions"
   model: "qwen2.5-7b-instruct-1m"
   max_content_chars: 12000 # Límite para evitar errores de contexto (n_ctx: 4352)
   system_prompt: >
