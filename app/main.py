@@ -212,27 +212,36 @@ def api_mark_all_read():
 @app.post("/api/scan")
 async def api_scan(background_tasks: BackgroundTasks):
     """
-    Runs blogwatcher-cli scan in the foreground.
+    Runs blogwatcher-cli scan asynchronously.
     Then schedules background image fetching for new articles.
     """
     try:
-        result = subprocess.run(
-            ["blogwatcher-cli", "scan"],
-            capture_output=True,
-            text=True,
-            timeout=120,
+        proc = await asyncio.create_subprocess_exec(
+            "blogwatcher-cli", "scan",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
         )
+        try:
+            stdout_bytes, stderr_bytes = await asyncio.wait_for(proc.communicate(), timeout=120.0)
+            stdout = stdout_bytes.decode() if stdout_bytes else ""
+            stderr = stderr_bytes.decode() if stderr_bytes else ""
+            returncode = proc.returncode
+        except asyncio.TimeoutError:
+            try:
+                proc.kill()
+            except ProcessLookupError:
+                pass
+            return {"ok": False, "error": "Scan timed out (>120s)"}
+
         # Schedule background image fetching
         background_tasks.add_task(fetch_missing_images)
 
         return {
             "ok": True,
-            "stdout": result.stdout,
-            "stderr": result.stderr,
-            "returncode": result.returncode,
+            "stdout": stdout,
+            "stderr": stderr,
+            "returncode": returncode,
         }
-    except subprocess.TimeoutExpired:
-        return {"ok": False, "error": "Scan timed out (>120s)"}
     except FileNotFoundError:
         return {"ok": False, "error": "blogwatcher-cli not found in PATH"}
 
@@ -321,6 +330,16 @@ def extract_og_image(html: str) -> str | None:
         src = img.get("src")
         if not src:
             continue
+            
+        # Check dimensions if specified
+        try:
+            width = int(img.get("width", "100"))
+            height = int(img.get("height", "100"))
+            if width <= 50 or height <= 50:
+                continue
+        except ValueError:
+            pass
+
         # Skip small icons/placeholders
         if any(x in src.lower() for x in ["icon", "logo", "tracker", "pixel", "avatar"]):
             continue
