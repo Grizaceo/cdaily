@@ -6,7 +6,11 @@ services:
       - "7890:7890"
     volumes:
       # Monta la base de datos de blogwatcher y la configuración
-      - /home/gris/.blogwatcher-cli:/root/.blogwatcher-cli
+      - /home/gris/.blogwatcher-cli:/.blogwatcher-cli
+      - ./config.yaml:/app/config.yaml
+      # Monta el binario de blogwatcher-cli
+      - /home/gris/.local/bin/blogwatcher-cli:/usr/local/bin/blogwatcher-cli:ro
     restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"
     environment:
       - TZ=America/Santiago # Ajusta a tu zona horaria si es necesario
