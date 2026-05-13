@@ -140,12 +140,12 @@ body {
 }
 
 /* Category-specific active states */
-.filter-pill.active[data-cat="politica"]     { background: var(--accent-politica);  border-color: var(--accent-politica);  color: #000; }
-.filter-pill.active[data-cat="internacional"]{ background: var(--accent-intl);      border-color: var(--accent-intl);      color: #fff; }
-.filter-pill.active[data-cat="ciencia"]      { background: var(--accent-ciencia);   border-color: var(--accent-ciencia);   color: #000; }
-.filter-pill.active[data-cat="economia"]     { background: var(--accent-economia);  border-color: var(--accent-economia);  color: #fff; }
-.filter-pill.active[data-cat="humor"]        { background: var(--accent-humor);     border-color: var(--accent-humor);     color: #fff; }
-.filter-pill.active[data-cat="ciberseguridad"]{ background: var(--accent-cyber);     border-color: var(--accent-cyber);     color: #000; }
+.filter-pill.active[data-cat="news"]        { background: var(--accent-politica);  border-color: var(--accent-politica);  color: #000; }
+.filter-pill.active[data-cat="tech"]        { background: var(--accent-intl);      border-color: var(--accent-intl);      color: #fff; }
+.filter-pill.active[data-cat="science"]     { background: var(--accent-ciencia);   border-color: var(--accent-ciencia);   color: #000; }
+.filter-pill.active[data-cat="business"]    { background: var(--accent-economia);  border-color: var(--accent-economia);  color: #fff; }
+.filter-pill.active[data-cat="culture"]     { background: var(--accent-humor);     border-color: var(--accent-humor);     color: #fff; }
+.filter-pill.active[data-cat="security"]    { background: var(--accent-cyber);     border-color: var(--accent-cyber);     color: #000; }
 
 .badge {
     display: inline-flex;

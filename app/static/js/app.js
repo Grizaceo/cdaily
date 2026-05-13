@@ -12,12 +12,12 @@ const state = {
 // ── Constants ───────────────────────────────────────────────────────────────
 const CATEGORIES = [
     { key: null,           label: "All",      emoji: "📰" },
-    { key: "politica",     label: "Pol",      emoji: "🏛️" },
-    { key: "internacional", label: "Intl",     emoji: "🌎" },
-    { key: "ciencia",      label: "Cien",     emoji: "🔬" },
-    { key: "economia",     label: "Eco",      emoji: "💰" },
-    { key: "humor",        label: "Humor",    emoji: "😂" },
-    { key: "ciberseguridad", label: "Cib",    emoji: "🔐" },
+    { key: "news",        label: "News",     emoji: "📰" },
+    { key: "tech",        label: "Tech",     emoji: "💻" },
+    { key: "science",     label: "Science",  emoji: "🔬" },
+    { key: "business",    label: "Biz",      emoji: "💼" },
+    { key: "culture",     label: "Culture",  emoji: "🎭" },
+    { key: "security",    label: "Sec",      emoji: "🔐" },
 ];
 
 // ── Init ────────────────────────────────────────────────────────────────────

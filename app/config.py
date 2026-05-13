@@ -11,39 +11,39 @@ import yaml
 
 # Default configurations
 DEFAULT_BLOG_CATEGORIES: Dict[str, str] = {
-    "CIPER Chile": "politica",
-    "BioBioChile": "politica",
-    "Cambio21": "politica",
-    "El Clarin": "politica",
-    "The Clinic": "humor",
-    "BBC Mundo": "internacional",
-    "The Guardian Mundo": "internacional",
-    "Ars Technica": "ciencia",
-    "Science Daily": "ciencia",
-    "Diario Financiero": "economia",
-    "The Onion": "humor",
-    "CyberScoop": "ciberseguridad",
-    "Dark Reading": "ciberseguridad",
-    "Help Net Security": "ciberseguridad",
-    "Infosecurity Magazine": "ciberseguridad",
-    "Krebs on Security": "ciberseguridad",
-    "MIT Tech Review AI": "ciencia",
-    "SANS ISC": "ciberseguridad",
-    "Schneier on Security": "ciberseguridad",
-    "Talos Intelligence": "ciberseguridad",
-    "The Hacker News": "ciberseguridad",
-    "The Verge AI": "ciencia",
-    "Unit 42 Palo Alto": "ciberseguridad",
-    "We Live Security": "ciberseguridad",
+    "CIPER Chile": "news",
+    "BioBioChile": "news",
+    "Cambio21": "news",
+    "El Clarin": "news",
+    "The Clinic": "culture",
+    "BBC Mundo": "news",
+    "The Guardian Mundo": "news",
+    "Ars Technica": "tech",
+    "Science Daily": "science",
+    "Diario Financiero": "business",
+    "The Onion": "culture",
+    "CyberScoop": "security",
+    "Dark Reading": "security",
+    "Help Net Security": "security",
+    "Infosecurity Magazine": "security",
+    "Krebs on Security": "security",
+    "MIT Tech Review AI": "tech",
+    "SANS ISC": "security",
+    "Schneier on Security": "security",
+    "Talos Intelligence": "security",
+    "The Hacker News": "security",
+    "The Verge AI": "tech",
+    "Unit 42 Palo Alto": "security",
+    "We Live Security": "security",
 }
 
 DEFAULT_CATEGORY_EMOJI: Dict[str, str] = {
-    "politica": "🏛️",
-    "internacional": "🌎",
-    "ciencia": "🔬",
-    "economia": "💰",
-    "humor": "😂",
-    "ciberseguridad": "🔐",
+    "news": "📰",
+    "tech": "💻",
+    "science": "🔬",
+    "business": "💼",
+    "culture": "🎭",
+    "security": "🔐",
     "default": "📰",
 }
 
@@ -97,4 +97,4 @@ CONFIG = load_config()
 DB_PATH = CONFIG["db_path"]
 BLOG_CATEGORIES: Dict[str, str] = CONFIG.get("blog_categories", DEFAULT_BLOG_CATEGORIES)
 CATEGORY_EMOJI: Dict[str, str] = CONFIG.get("category_emoji", DEFAULT_CATEGORY_EMOJI)
-DEFAULT_EMOJI = CATEGORY_EMOJI.get("default", "📰")
+DEFAULT_EMOJI = CATEGORY_EMOJI.get("news", CATEGORY_EMOJI.get("default", "📰"))

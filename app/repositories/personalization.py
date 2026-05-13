@@ -18,11 +18,11 @@ def get_blog_category_map() -> dict[str, str]:
 
 
 def get_blog_category(blog_name: str) -> str:
-    return get_blog_category_map().get(blog_name, "default")
+    return get_blog_category_map().get(blog_name, "news")
 
 
 def get_emoji(category: str) -> str:
-    return CATEGORY_EMOJI.get(category, CATEGORY_EMOJI.get("default", "📰"))
+    return CATEGORY_EMOJI.get(category, CATEGORY_EMOJI.get("news", "📰"))
 
 
 def get_personalization_profile() -> dict:
@@ -48,7 +48,7 @@ def get_personalization_profile() -> dict:
 
     for row in by_blog_rows:
         blog_name = row["blog_name"]
-        cat = blog_category_map.get(blog_name, "default")
+        cat = blog_category_map.get(blog_name, "news")
         by_category_acc.setdefault(cat, []).append(float(row["avg_rating"]))
 
     by_category = {cat: (sum(values) / len(values)) for cat, values in by_category_acc.items() if values}

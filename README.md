@@ -2,6 +2,8 @@
 
 Feed reader minimalista para hojear mientras trabajas. Lee directo del SQLite de blogwatcher-cli, sin duplicar datos.
 
+![CDaily screenshot](docs/images/cdaily-home.png)
+
 ## Qué hace
 
 - Lista artículos desde la base de `blogwatcher-cli`
@@ -30,7 +32,7 @@ python -m app.main
 
 ## Configuración
 
-El archivo tracked `config.yaml` solo contiene defaults seguros. Para overrides locales, usa variables de entorno o un archivo local ignorado por git.
+El archivo tracked `config.yaml` usa categorías genéricas y defaults seguros. Para overrides locales, usa variables de entorno o un archivo local ignorado por git.
 
 Variables útiles:
 
@@ -46,7 +48,7 @@ export CDAILY_AI_ENDPOINT="http://localhost:12345/v1/chat/completions"
 export CDAILY_AI_API_KEY="tu_key_si_aplica"
 ```
 
-También puedes copiar `.env.example` a `.env` o `config.local.yaml.example` a `config.local.yaml` si prefieres overrides en YAML. `.env`, `.env.local` y `config.local.yaml` están ignorados por git.
+También puedes copiar `.env.example` a `.env` o `config.yaml.example` a `config.yaml` si prefieres empezar desde los defaults públicos. `.env`, `.env.local` y `config.local.yaml` están ignorados por git.
 
 ## Docker
 

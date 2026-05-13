@@ -2,7 +2,7 @@
 
 ## 1. Concept & Vision
 
-CDaily es un feed reader personal minimalista diseñado para Cristóbal: una ventana que deja abierta mientras trabaja y hojeadurante breaks. No pretende ser un reader completo tipo Feedly — es un diario personalizado con categorías que reflejan sus intereses reales (derecho, ciencia, política con humor, anime) y un algoritmo depriorización que aprende de su feedback.
+CDaily es un feed reader personal minimalista diseñado para Cristóbal: una ventana que deja abierta mientras trabaja y hojea durante breaks. No pretende ser un reader completo tipo Feedly — es un diario personalizado con categorías generales que reflejan intereses amplios (news, tech, science, business, culture, security) y un algoritmo de priorización que aprende de su feedback.
 
 La experiencia se siente como un mural de noticias — cartas con título corto, origen, categoría con emoji, snippet legible — diseñado para hojear en 30 segundos. No hay scroll infinito ni noticias de hace 3 días (a menos que no las hayas abierto).
 
@@ -63,7 +63,7 @@ Inspiración: Notion meets Hacker News — limpio, denso-en-información, sin ru
 ┌─────────────────────────────────────────────────────┐
 │  CDaily 🌿  [search]  [mark all read]  [refresh ↻] │
 ├─────────────────────────────────────────────────────┤
-│  [All] [🏛️Pol] [🌎Intl] [🔬Sci] [💰Eco] [😂Hum] [🔐Cib] │
+│  [All] [📰News] [💻Tech] [🔬Sci] [💼Biz] [🎭Cult] [🔐Sec] │
 ├─────────────────────────────────────────────────────┤
 │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐   │
 │  │ Title here  │ │ Title here  │ │ Title here  │   │
@@ -102,10 +102,10 @@ Inspiración: Notion meets Hacker News — limpio, denso-en-información, sin ru
 - Tarjeta ya leída se atenúa (opacity 0.5) pero no desaparece
 
 #### F2: Sistema de filtros por categoría
-- Pills: All | 🏛️ Política | 🌎 Internacional | 🔬 Ciencia | 💰 Economía | 😂 Humor | 🔐 Ciberseguridad
+- Pills: All | 📰 News | 💻 Tech | 🔬 Science | 💼 Business | 🎭 Culture | 🔐 Security
 - Click pill = filtra solo esa categoría
 - Múltiples categorías: NO (filtro único activo)
-- Persistencia del filtro en URL query param (`?cat=ciencia`)
+- Persistencia del filtro en URL query param (`?cat=news`)
 - Contador de unread al lado de cada filtro
 
 #### F3: Búsqueda por texto
@@ -279,30 +279,30 @@ log_level: "INFO"
 
 | Blog | Categoría | Emoji |
 |------|-----------|-------|
-| CIPER Chile | politica | 🏛️ |
-| BioBioChile | politica | 🏛️ |
-| Cambio21 | politica | 🏛️ |
-| El Clarin | politica | 🏛️ |
-| The Clinic | humor | 😂 |
-| BBC Mundo | internacional | 🌍 |
-| The Guardian Mundo | internacional | 🌍 |
-| Ars Technica | ciencia | 🔬 |
-| Science Daily | ciencia | 🔬 |
-| Diario Financiero | economia | 💰 |
-| The Onion | humor | 😂 |
-| CyberScoop | ciberseguridad | 🔐 |
-| Dark Reading | ciberseguridad | 🔐 |
-| Help Net Security | ciberseguridad | 🔐 |
-| Infosecurity Magazine | ciberseguridad | 🔐 |
-| Krebs on Security | ciberseguridad | 🔐 |
-| MIT Tech Review AI | ciencia | 🔬 |
-| SANS ISC | ciberseguridad | 🔐 |
-| Schneier on Security | ciberseguridad | 🔐 |
-| Talos Intelligence | ciberseguridad | 🔐 |
-| The Hacker News | ciberseguridad | 🔐 |
-| The Verge AI | ciencia | 🔬 |
-| Unit 42 Palo Alto | ciberseguridad | 🔐 |
-| We Live Security | ciberseguridad | 🔐 |
+| CIPER Chile | news | 📰 |
+| BioBioChile | news | 📰 |
+| Cambio21 | news | 📰 |
+| El Clarin | news | 📰 |
+| The Clinic | culture | 🎭 |
+| BBC Mundo | news | 📰 |
+| The Guardian Mundo | news | 📰 |
+| Ars Technica | tech | 💻 |
+| Science Daily | science | 🔬 |
+| Diario Financiero | business | 💼 |
+| The Onion | culture | 🎭 |
+| CyberScoop | security | 🔐 |
+| Dark Reading | security | 🔐 |
+| Help Net Security | security | 🔐 |
+| Infosecurity Magazine | security | 🔐 |
+| Krebs on Security | security | 🔐 |
+| MIT Tech Review AI | tech | 💻 |
+| SANS ISC | security | 🔐 |
+| Schneier on Security | security | 🔐 |
+| Talos Intelligence | security | 🔐 |
+| The Hacker News | security | 🔐 |
+| The Verge AI | tech | 💻 |
+| Unit 42 Palo Alto | security | 🔐 |
+| We Live Security | security | 🔐 |
 
 ---
 

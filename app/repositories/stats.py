@@ -28,7 +28,7 @@ def get_stats() -> dict:
     for row in rows:
         blog_name = row[0]
         count = row[1]
-        cat = blog_map.get(blog_name, "default")
+        cat = blog_map.get(blog_name, "news")
         cat_counts[cat] = cat_counts.get(cat, 0) + count
 
     return {"total": total, "by_category": cat_counts}
