@@ -115,8 +115,8 @@ log_level: "INFO"
 ```yaml
 ai_preferences:
   enabled: true
-  endpoint: "http://localhost:11434/v1/chat/completions"
-  model: "neural-chat"
+  endpoint: "http://localhost:12345/v1/chat/completions"  # example OpenAI-compatible endpoint
+  model: "qwen2.5-7b-instruct-1m"
   max_content_chars: 12000
   system_prompt: "Summarize briefly in 3 bullet points."
 ```
