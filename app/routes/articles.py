@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 
 from ..config import CONFIG
 from ..database import get_articles, mark_all_read, mark_read, mark_unread, set_article_rating, toggle_star
@@ -10,6 +10,18 @@ from ..services.article_images import fetch_article_image
 from ..services.article_summary import summarize_article
 
 router = APIRouter(prefix="/api/articles", tags=["articles"])
+
+
+# ── Rate limit helpers ─────────────────────────────────────────────────────
+def _limiter():
+    """Lazy import to avoid circular imports at module level."""
+    from ..main import limiter
+    return limiter
+
+
+_RATE_FAST = "60/minute"       # lightweight mutations (read, star, unread)
+_RATE_SLOW = "10/minute"       # expensive (summarize, image fetch)
+_RATE_BULK = "5/minute"        # bulk operations (read-all)
 
 
 @router.get("")
@@ -33,25 +45,29 @@ def api_articles(
 
 
 @router.post("/{article_id}/read")
-def api_mark_read(article_id: int):
+def api_mark_read(article_id: int, request: Request):
+    _limiter().limit(_RATE_FAST)(lambda: None)()
     mark_read(article_id)
     return {"ok": True}
 
 
 @router.post("/{article_id}/unread")
-def api_mark_unread(article_id: int):
+def api_mark_unread(article_id: int, request: Request):
+    _limiter().limit(_RATE_FAST)(lambda: None)()
     mark_unread(article_id)
     return {"ok": True}
 
 
 @router.post("/{article_id}/star")
-def api_toggle_star(article_id: int):
+def api_toggle_star(article_id: int, request: Request):
+    _limiter().limit(_RATE_FAST)(lambda: None)()
     starred = toggle_star(article_id)
     return {"ok": True, "starred": starred}
 
 
 @router.post("/{article_id}/summarize")
-async def api_summarize(article_id: int):
+async def api_summarize(article_id: int, request: Request):
+    _limiter().limit(_RATE_SLOW)(lambda: None)()
     ai_prefs = CONFIG.get("ai_preferences", {})
     result = await summarize_article(article_id, ai_prefs)
     if not result.get("ok"):
@@ -62,7 +78,8 @@ async def api_summarize(article_id: int):
 
 
 @router.post("/{article_id}/rate")
-def api_rate_article(article_id: int, payload: dict):
+def api_rate_article(article_id: int, payload: dict, request: Request):
+    _limiter().limit(_RATE_FAST)(lambda: None)()
     rating_raw = payload.get("rating")
     if rating_raw is None:
         rating = None
@@ -79,11 +96,13 @@ def api_rate_article(article_id: int, payload: dict):
 
 
 @router.post("/read-all")
-def api_mark_all_read():
+def api_mark_all_read(request: Request):
+    _limiter().limit(_RATE_BULK)(lambda: None)()
     count = mark_all_read()
     return {"ok": True, "count": count}
 
 
 @router.get("/{article_id}/image")
-async def api_article_image(article_id: int):
+async def api_article_image(article_id: int, request: Request):
+    _limiter().limit(_RATE_SLOW)(lambda: None)()
     return await fetch_article_image(article_id)

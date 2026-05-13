@@ -33,7 +33,7 @@ async def fetch_article_image(article_id: int) -> dict[str, Any]:
         return {"image_url": None, "cached": False, "error": str(e)}
 
     try:
-        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
             headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
             resp = await client.get(url, headers=headers)
             resp.raise_for_status()
@@ -50,7 +50,7 @@ async def fetch_missing_images(limit: int = 50) -> None:
     if not articles:
         return
 
-    async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+    async with httpx.AsyncClient(timeout=8.0, follow_redirects=True) as client:
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
         for art in articles:
             try:

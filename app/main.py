@@ -7,6 +7,9 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from .database import init_db
 from .routes.articles import router as articles_router
@@ -17,6 +20,11 @@ BASE_DIR = Path(__file__).parent
 init_db()
 
 app = FastAPI(title="CDaily", description="Cristóbal's Daily Feed")
+
+# Rate limiter: per-IP, applied selectively to mutation endpoints
+limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # CSP: basic defense-in-depth — restricts inline styles/scripts
 CSP = (

@@ -33,7 +33,7 @@ async def summarize_article(article_id: int, ai_prefs: dict[str, Any]) -> dict[s
         return {"ok": False, "error": str(e)}
 
     try:
-        async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
             headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
             resp = await client.get(url, headers=headers)
             resp.raise_for_status()
@@ -86,17 +86,21 @@ async def summarize_article(article_id: int, ai_prefs: dict[str, Any]) -> dict[s
         headers["Authorization"] = f"Bearer {api_key}"
 
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(endpoint, json=payload, headers=headers)
             if response.status_code != 200:
                 error_body = response.text
-                logger.error("AI Server Error (%s): %s", response.status_code, error_body)
+                logger.error("AI Server Error (%s): body length=%s", response.status_code, len(error_body))
                 return {"ok": False, "error": f"AI Server Error {response.status_code}: {error_body}"}
 
             data = response.json()
             summary = extract_summary_text(data)
             if not summary:
-                logger.error("AI response has no summary text: %s", data)
+                logger.error(
+                    "AI response has no summary text (status=%s, body length=%s)",
+                    response.status_code,
+                    len(response.text),
+                )
                 return {"ok": False, "error": "La IA respondió sin contenido de resumen."}
 
             logger.info("AI Summary for %s: %s...", article_id, summary[:100])
