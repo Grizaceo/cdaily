@@ -1,5 +1,6 @@
 """database.py — SQLite connection and queries. CDaily ONLY reads from blogwatcher tables."""
 
+import json
 import sqlite3
 from contextlib import closing
 
@@ -154,12 +155,25 @@ def get_articles(
         # use og image if present, otherwise none (frontend shows fallback)
         image_url = row["og_image"] or None
         rating = row["user_rating"]
+        raw_categories = row["categories"] or ""
+        article_categories: list[str] = []
+        if raw_categories:
+            try:
+                parsed = json.loads(raw_categories)
+                if isinstance(parsed, list):
+                    article_categories = [str(item).strip() for item in parsed if str(item).strip()]
+                elif isinstance(parsed, str) and parsed.strip():
+                    article_categories = [parsed.strip()]
+            except json.JSONDecodeError:
+                article_categories = [part.strip() for part in raw_categories.split(",") if part.strip()]
+
         articles.append(
             {
                 "id": row["id"],
                 "title": row["title"] or row["url"],
                 "url": row["url"],
-                "summary": row["categories"] or "",
+                "summary": ", ".join(article_categories[:3]),
+                "categories": article_categories,
                 "published_date": row["published_date"],
                 "is_read": bool(row["is_read"]),
                 "is_starred": row["starred_id"] is not None,
@@ -284,7 +298,8 @@ def save_article_og_image(article_id: int, image_url: str | None) -> None:
                 )
             else:
                 conn.execute(
-                    "INSERT OR IGNORE INTO cdaily_article_images (article_id, image_url) VALUES (?, ?)", (article_id, None)
+                    "INSERT OR IGNORE INTO cdaily_article_images (article_id, image_url) VALUES (?, ?)",
+                    (article_id, None),
                 )
 
 
@@ -315,15 +330,13 @@ def get_stats() -> dict:
         total = cur.fetchone()[0]
 
         # Optimized per-category counts (single query)
-        cur.execute(
-            """
+        cur.execute("""
             SELECT b.name, COUNT(*)
             FROM articles a
             JOIN blogs b ON a.blog_id = b.id
             WHERE a.is_read = 0
             GROUP BY b.name
-            """
-        )
+            """)
         rows = cur.fetchall()
 
     cat_counts = {}

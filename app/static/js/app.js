@@ -201,8 +201,8 @@ function renderArticles() {
         const titleHtml = query
             ? highlightMatches(escHtml(article.title), query)
             : escHtml(article.title);
-        const summaryHtml = article.summary
-            ? `<p class="card-summary">${escHtml(truncate(article.summary, 180))}</p>`
+        const categoriesHtml = Array.isArray(article.categories) && article.categories.length
+            ? `<div class="card-tags">${article.categories.slice(0, 4).map(tag => `<span class="card-tag">${escHtml(tag)}</span>`).join("")}</div>`
             : "";
         const ratingHtml = `
             <div class="rating-control" data-rating="${article.user_rating ?? ""}">
@@ -233,7 +233,7 @@ function renderArticles() {
                     </a>
                     ${ratingHtml}
                     <div class="ai-summary-container" hidden></div>
-                    ${summaryHtml}
+                    ${categoriesHtml}
                 </div>
             </article>
         `;

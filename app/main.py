@@ -5,7 +5,6 @@ Serves the feed UI and provides a JSON API backed by blogwatcher-cli SQLite.
 
 import asyncio
 import logging
-import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -217,7 +216,8 @@ async def api_scan(background_tasks: BackgroundTasks):
     """
     try:
         proc = await asyncio.create_subprocess_exec(
-            "blogwatcher-cli", "scan",
+            "blogwatcher-cli",
+            "scan",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -330,7 +330,7 @@ def extract_og_image(html: str) -> str | None:
         src = img.get("src")
         if not src:
             continue
-            
+
         # Check dimensions if specified
         try:
             width = int(img.get("width", "100"))
