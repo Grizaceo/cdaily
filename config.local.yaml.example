@@ -1,0 +1,16 @@
+# Optional local overrides for CDaily.
+# Copy to config.local.yaml if you want to override tracked defaults.
+
+# host: "0.0.0.0"
+# port: 7890
+# db_path: "~/.blogwatcher-cli/blogwatcher-cli.db"
+# scan_interval_minutes: 30
+# refresh_interval_seconds: 60
+# log_level: "INFO"
+#
+# ai_preferences:
+#   enabled: true
+#   endpoint: "http://localhost:12345/v1/chat/completions"
+#   model: "qwen2.5-7b-instruct-1m"
+#   max_content_chars: 12000
+#   api_key: ""

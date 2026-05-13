@@ -73,14 +73,19 @@ def load_config(config_path: str | None = None) -> dict:
     with open(config_path) as f:
         raw = yaml.safe_load(f)
 
-    # Resolve paths
-    raw["db_path"] = _resolve_path(raw["db_path"])
+    # Resolve paths and allow safe env overrides for public sharing
+    env_db_path = os.environ.get("CDAILY_DB_PATH")
+    if env_db_path:
+        raw["db_path"] = env_db_path
+    raw["db_path"] = _resolve_path(str(raw["db_path"]))
 
-    # Override AI endpoint from env var if set
-    if "ai_preferences" in raw and "endpoint" in raw["ai_preferences"]:
-        env_endpoint = os.environ.get("CDAILY_AI_ENDPOINT")
-        if env_endpoint:
-            raw["ai_preferences"]["endpoint"] = env_endpoint
+    ai_prefs = raw.setdefault("ai_preferences", {})
+    env_endpoint = os.environ.get("CDAILY_AI_ENDPOINT")
+    if env_endpoint:
+        ai_prefs["endpoint"] = env_endpoint
+    env_api_key = os.environ.get("CDAILY_AI_API_KEY")
+    if env_api_key:
+        ai_prefs["api_key"] = env_api_key
 
     # Validate config
     validate_config(raw)

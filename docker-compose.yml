@@ -6,11 +6,14 @@ services:
       - "7890:7890"
     volumes:
       # Monta la base de datos de blogwatcher y la configuración
-      - /home/gris/.blogwatcher-cli:/.blogwatcher-cli
-      - ./config.yaml:/app/config.yaml
+      - ${HOME}/.blogwatcher-cli:/.blogwatcher-cli
+      - ./config.yaml:/app/config.yaml:ro
       # Monta el binario de blogwatcher-cli
-      - /home/gris/.local/bin/blogwatcher-cli:/usr/local/bin/blogwatcher-cli:ro
+      - ${HOME}/.local/bin/blogwatcher-cli:/usr/local/bin/blogwatcher-cli:ro
     restart: unless-stopped
     user: "${UID:-1000}:${GID:-1000}"
     environment:
-      - TZ=America/Santiago # Ajusta a tu zona horaria si es necesario
+      TZ: America/Santiago
+      CDAILY_CONFIG: /app/config.yaml
+      CDAILY_AI_ENDPOINT: ${CDAILY_AI_ENDPOINT:-http://host.docker.internal:12345/v1/chat/completions}
+      CDAILY_AI_API_KEY: ${CDAILY_AI_API_KEY:-}
