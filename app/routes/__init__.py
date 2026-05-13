@@ -1,1 +1,1 @@
-# Routes package
+"""HTTP routes for CDaily."""
