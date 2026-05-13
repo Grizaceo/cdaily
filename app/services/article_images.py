@@ -14,6 +14,7 @@ from ..database import (
     get_article_og_image,
     save_article_og_image,
 )
+from ..validate_url import validate_url
 
 
 async def fetch_article_image(article_id: int) -> dict[str, Any]:
@@ -24,6 +25,12 @@ async def fetch_article_image(article_id: int) -> dict[str, Any]:
     url, _ = get_article_url_and_summary(article_id)
     if not url:
         return {"image_url": None, "cached": False, "error": "No URL"}
+
+    # SSRF guard
+    try:
+        validate_url(url)
+    except ValueError as e:
+        return {"image_url": None, "cached": False, "error": str(e)}
 
     try:
         async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
@@ -47,6 +54,13 @@ async def fetch_missing_images(limit: int = 50) -> None:
         headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
         for art in articles:
             try:
+                # Validate each URL before fetching
+                try:
+                    validate_url(art["url"])
+                except ValueError:
+                    save_article_og_image(art["id"], None)
+                    await asyncio.sleep(1)
+                    continue
                 resp = await client.get(art["url"], headers=headers)
                 if resp.status_code == 200:
                     og_image = extract_og_image(resp.text)

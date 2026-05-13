@@ -194,7 +194,7 @@ function renderArticles() {
         const isRead = article.is_read ? "is-read" : "";
         const isStarred = article.is_starred ? "is-starred" : "";
         const imgHtml = article.image_url
-            ? `<div class="card-image" style="background-image: url('${escHtml(article.image_url)}')"></div>`
+            ? `<div class="card-image" style="background-image: ${safeCssImageUrl(article.image_url)}"></div>`
             : `<div class="card-image is-placeholder" data-id="${article.id}">
                  <div class="placeholder-icon">🖼️</div>
                </div>`;
@@ -265,12 +265,15 @@ async function fetchImageOnDemand(id, el) {
     try {
         const res = await api("GET", `/api/articles/${id}/image`);
         if (res.image_url) {
-            el.style.backgroundImage = `url('${res.image_url}')`;
-            el.classList.remove("is-placeholder");
-            el.innerHTML = ""; // Clear placeholder icon
-        } else {
-            // Leave placeholder but maybe change icon to indicate none found
-            el.querySelector(".placeholder-icon").textContent = "🗞️";
+            const cssUrl = safeCssImageUrl(res.image_url);
+            if (cssUrl) {
+                el.style.backgroundImage = cssUrl;
+                el.classList.remove("is-placeholder");
+                el.innerHTML = ""; // Clear placeholder icon
+            } else {
+                // Leave placeholder but maybe change icon to indicate none found
+                el.querySelector(".placeholder-icon").textContent = "🗞️";
+            }
         }
     } catch (err) {
         console.error("Failed to fetch image on demand", err);
@@ -368,6 +371,19 @@ function escHtml(str) {
     const d = document.createElement("div");
     d.textContent = String(str);
     return d.innerHTML;
+}
+
+/**
+ * Safely format a URL for use inside CSS url().
+ * Only allows http/https URLs — rejects javascript:, data:, file:, etc.
+ */
+function safeCssImageUrl(url) {
+    if (!url) return null;
+    const str = String(url).trim();
+    // Only http and https are safe for background-image
+    if (!str.startsWith("http://") && !str.startsWith("https://")) return null;
+    // Escape single quotes and parentheses for CSS safety
+    return `url('${str.replace(/'/g, "%27").replace(/\(/g, "%28").replace(/\)/g, "%29")}')`;
 }
 
 function formatDate(iso) {

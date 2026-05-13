@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 
 from ..database import get_article_url_and_summary, save_ai_summary, save_article_og_image
 from .article_images import extract_og_image
+from ..validate_url import validate_url
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,12 @@ async def summarize_article(article_id: int, ai_prefs: dict[str, Any]) -> dict[s
 
     if not url:
         return {"ok": False, "error": "Article has no URL to summarize."}
+
+    # SSRF guard
+    try:
+        validate_url(url)
+    except ValueError as e:
+        return {"ok": False, "error": str(e)}
 
     try:
         async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
@@ -66,6 +73,12 @@ async def summarize_article(article_id: int, ai_prefs: dict[str, Any]) -> dict[s
         "presence_penalty": 0.6,
         "max_tokens": 500,
     }
+
+    # AI endpoint: validate URL too (comes from config, not user, but defense in depth)
+    try:
+        validate_url(endpoint)
+    except ValueError:
+        return {"ok": False, "error": "AI endpoint URL is invalid or points to a private/internal host."}
 
     headers = {"Content-Type": "application/json"}
     api_key = ai_prefs.get("api_key")
