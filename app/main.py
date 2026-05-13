@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from fastapi import FastAPI
-from fastapi.responses import Response
+from fastapi.responses import Response, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -42,12 +43,36 @@ ALLOWED_ORIGINS = frozenset({
     "http://host.docker.internal:7890",
 })
 
+# Optional auth token for production deployments.
+# Set env CDAILY_API_TOKEN to enable — all API endpoints will require
+# Authorization: Bearer <token>. The home page (GET /) stays open.
+_AUTH_TOKEN = os.environ.get("CDAILY_API_TOKEN") or ""
+
 
 @app.middleware("http")
 async def add_security_headers(request, call_next):
     response: Response = await call_next(request)
     if response.headers.get("content-type", "").startswith("text/html"):
         response.headers["Content-Security-Policy"] = CSP
+    return response
+
+
+@app.middleware("http")
+async def require_auth(request, call_next):
+    """Optional bearer-token auth for production deployments.
+
+    Only validates requests to /api/* routes when CDAILY_API_TOKEN is set.
+    The home page (GET /) and static files remain open.
+    """
+    if _AUTH_TOKEN and request.url.path.startswith("/api/"):
+        auth = request.headers.get("Authorization", "")
+        expected = f"Bearer {_AUTH_TOKEN}"
+        if auth != expected:
+            return JSONResponse(
+                status_code=401,
+                content={"ok": False, "error": "Unauthorized — provide Authorization: Bearer <token>"},
+            )
+    response = await call_next(request)
     return response
 
 
@@ -83,7 +108,6 @@ async def check_csrf(request, call_next):
                     break
 
         if not allowed:
-            from fastapi.responses import JSONResponse
             return JSONResponse(
                 status_code=403,
                 content={"ok": False, "error": "Cross-site request forbidden"},

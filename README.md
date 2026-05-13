@@ -100,11 +100,65 @@ Los cambios se reflejan en CDaily al siguiente refresh automático o manual.
 
 - No hay secretos hardcodeados en el repo.
 - Las credenciales de IA van por variables de entorno, nunca dentro de `config.yaml`.
+- Todas las URLs externas se validan (solo http/https, sin IPs privadas).
 - Archivos locales sensibles o personalizados se ignoran con `.gitignore`:
   - `.env`
   - `.env.local`
   - `config.local.yaml`
   - `.venv/`
+
+## Autenticación opcional (producción)
+
+Para exponer CDaily en red o internet, activa auth token vía entorno:
+
+```bash
+export CDAILY_API_TOKEN="<tu-token-seguro>"
+```
+
+Una vez seteado, toda request a `/api/*` requiere header:
+
+```
+Authorization: Bearer <tu-token-seguro>
+```
+
+La página principal (`GET /`) y archivos estáticos quedan abiertos.
+
+Si no seteas `CDAILY_API_TOKEN`, la autenticación está desactivada y todo
+funciona como antes — ideal para desarrollo local.
+
+## HTTPS con reverse proxy (producción)
+
+CDaily sirve HTTP en `127.0.0.1:7890`. Para producción, ponlo detrás de un
+reverse proxy con TLS. El más simple es Caddy:
+
+```bash
+# Caddyfile
+midominio.com {
+    reverse_proxy 127.0.0.1:7890
+}
+```
+
+```bash
+caddy run
+```
+
+O con nginx:
+
+```nginx
+# /etc/nginx/sites-available/cdaily
+server {
+    listen 443 ssl;
+    server_name midominio.com;
+    ssl_certificate     /etc/ssl/certs/midomio.pem;
+    ssl_certificate_key /etc/ssl/private/midomio.key;
+
+    location / {
+        proxy_pass http://127.0.0.1:7890;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
 
 ## Troubleshooting
 
