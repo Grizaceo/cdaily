@@ -77,7 +77,8 @@ pytest tests/ -v
 - `app/main.py` — bootstrap mínimo de FastAPI
 - `app/routes/` — capa HTTP
 - `app/services/` — scraping, resúmenes, scan y caché de imágenes
-- `app/database.py` — acceso SQLite y queries
+- `app/repositories/` — acceso a SQLite y queries
+- `app/database.py` — shim de compatibilidad para imports antiguos
 - `app/static/` — JS y CSS del frontend
 - `app/templates/` — HTML base
 
