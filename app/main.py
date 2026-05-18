@@ -13,6 +13,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from .database import init_db
+from .config import CONFIG
 from .routes.articles import router as articles_router
 from .routes.system import router as system_router
 
@@ -20,7 +21,7 @@ BASE_DIR = Path(__file__).parent
 
 init_db()
 
-app = FastAPI(title="CDaily", description="Cristóbal's Daily Feed")
+app = FastAPI(title="CDaily", description="Personal Daily Feed")
 
 # Rate limiter: per-IP, applied selectively to mutation endpoints
 limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
@@ -36,12 +37,14 @@ CSP = (
     "script-src 'self'"
 )
 
-ALLOWED_ORIGINS = frozenset({
-    "http://127.0.0.1:7890",
-    "http://localhost:7890",
-    # Docker: host.docker.internal from container → host
-    "http://host.docker.internal:7890",
-})
+ALLOWED_ORIGINS = frozenset(
+    {
+        "http://127.0.0.1:7890",
+        "http://localhost:7890",
+        # Docker: host.docker.internal from container → host
+        "http://host.docker.internal:7890",
+    }
+)
 
 # Optional auth token for production deployments.
 # Set env CDAILY_API_TOKEN to enable — all API endpoints will require
@@ -127,7 +130,7 @@ if __name__ == "__main__":
 
     uvicorn.run(
         "app.main:app",
-        host="127.0.0.1",
+        host=CONFIG["host"],
         port=7890,
         reload=False,
     )

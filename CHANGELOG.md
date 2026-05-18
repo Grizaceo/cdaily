@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## [0.1.0.0] - 2026-05-18
+
+First public open-source release.
+
+### Public release cleanup
+- **Black formatting**: Applied to 4 files (validate_url, routes/system, routes/articles, main.py).
+- **CI fix**: Changed CI trigger from `main` to `master` branch.
+- **Tests rewritten**: Now fully self-contained with in-memory SQLite fixtures (no blogwatcher-cli DB dependency).
+- **Personal references removed**: Neutralized "Cristóbal", "DAVI", "/home/gris/" across README, SPEC, QUICK_REFERENCE, app/__init__.py, and app/main.py. Only LICENSE retains copyright.
+- **Flake8 compliance**: Fixed line-length issues in tests, 0 errors.
+
 ### Security — Phase A (Containment)
 - **SSRF guard**: New `validate_url()` rejects non-http/https URLs, private IPs
   (10.x, 192.168.x), loopback (localhost, 127.0.0.1), and internal domains

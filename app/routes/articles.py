@@ -16,12 +16,13 @@ router = APIRouter(prefix="/api/articles", tags=["articles"])
 def _limiter():
     """Lazy import to avoid circular imports at module level."""
     from ..main import limiter
+
     return limiter
 
 
-_RATE_FAST = "60/minute"       # lightweight mutations (read, star, unread)
-_RATE_SLOW = "10/minute"       # expensive (summarize, image fetch)
-_RATE_BULK = "5/minute"        # bulk operations (read-all)
+_RATE_FAST = "60/minute"  # lightweight mutations (read, star, unread)
+_RATE_SLOW = "10/minute"  # expensive (summarize, image fetch)
+_RATE_BULK = "5/minute"  # bulk operations (read-all)
 
 
 @router.get("")

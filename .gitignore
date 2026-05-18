@@ -9,6 +9,8 @@ __pycache__/
 .env
 .env.local
 config.local.yaml
+config.[0-9]*.yaml
+*.deb
 .venv/
 venv/
 *.db-journal

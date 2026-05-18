@@ -1,6 +1,8 @@
-# CDaily — Cristóbal's Daily Feed
+# CDaily — Personal Daily Feed
 
-Feed reader minimalista para hojear mientras trabajas. Lee directo del SQLite de blogwatcher-cli, sin duplicar datos.
+Todos tus agentes están corriendo. Tus cron jobs disparan, tus scripts scrapean, tus modelos infieren. ¿Qué haces ahora que no te distraiga tanto pero sea casi tocar pasto?
+
+CDaily es un poco eso. Un feed reader minimalista que abres en una pestaña y hojeas entre tasks. Lee directo del SQLite de blogwatcher-cli, sin duplicar datos. Sin notificaciones. Sin scroll infinito. Solo una cuadrícula de lo que está pasando afuera mientras tú estás adentro.
 
 ![CDaily screenshot](docs/images/cdaily-home.png)
 
@@ -24,7 +26,7 @@ Feed reader minimalista para hojear mientras trabajas. Lee directo del SQLite de
 ## Quick start local
 
 ```bash
-cd ~/.hermes/workspace/repos/cdaily
+cd cdaily
 python -m pip install -r requirements.txt
 python -m app.main
 # abrir http://localhost:7890
@@ -95,6 +97,10 @@ blogwatcher-cli remove "Nombre" --yes
 ```
 
 Los cambios se reflejan en CDaily al siguiente refresh automático o manual.
+
+## Open source
+
+CDaily is released under the [MIT License](LICENSE). See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and pull request guidelines.
 
 ## Notas de publicación pública
 

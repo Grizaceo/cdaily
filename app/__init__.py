@@ -1,1 +1,1 @@
-# CDaily — Cristóbal's Daily Feed App
+# CDaily App

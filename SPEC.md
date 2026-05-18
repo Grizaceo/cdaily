@@ -1,19 +1,19 @@
-# SPEC.md — CDaily (Cristóbal's Daily Feed)
+# SPEC.md — CDaily
 
 ## 1. Concept & Vision
 
-CDaily es un feed reader personal minimalista diseñado para Cristóbal: una ventana que deja abierta mientras trabaja y hojea durante breaks. No pretende ser un reader completo tipo Feedly — es un diario personalizado con categorías generales que reflejan intereses amplios (news, tech, science, business, culture, security) y un algoritmo de priorización que aprende de su feedback.
+CDaily es un feed reader personal minimalista: una ventana que dejas abierta mientras trabajas y hojeas durante breaks. No pretende ser un reader completo tipo Feedly — es un diario personalizado con categorías generales que reflejan intereses amplios (news, tech, science, business, culture, security) y un algoritmo de priorización que aprende de tu feedback.
 
 La experiencia se siente como un mural de noticias — cartas con título corto, origen, categoría con emoji, snippet legible — diseñado para hojear en 30 segundos. No hay scroll infinito ni noticias de hace 3 días (a menos que no las hayas abierto).
 
-**Filosofía:** El feed eres tú. El algoritmo soy yo (DAVI) ajustando fuentes según tu feedback. No necesito ML para 20 fuentes.
+**Filosofía:** El feed eres tú. El algoritmo ajusta fuentes según tu feedback. No necesita ML para 20 fuentes.
 
 ---
 
 ## 2. Design Language
 
 ### Aesthetic Direction
-Inspiración: Notion meets Hacker News — limpio, denso-en-información, sin ruido visual. Dark mode por defecto ( Cristóbal trabaja de noche). Tarjetas blancas sobre fondo gris oscuro, acentos de color por categoría.
+Inspiración: Notion meets Hacker News — limpio, denso-en-información, sin ruido visual. Dark mode por defecto. Tarjetas blancas sobre fondo gris oscuro, acentos de color por categoría.
 
 ### Color Palette
 ```
@@ -267,7 +267,7 @@ log_level: "INFO"
 ### Decisiones de implementación (ya tomadas)
 - **Vanilla JS sin framework** — overkill para la complejidad real
 - **SQLite compartida** — no duplicar datos, solo leer
-- **No auth** — es local, para Cristóbal
+- **No auth** — es local, uso personal
 - **No cache Redis/memcached** — overkill para escala personal
 - **CSS puro con custom properties** — rápido de mantener
 - **Templates con Jinja2** — ya viene con FastAPI

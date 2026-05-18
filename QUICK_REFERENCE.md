@@ -70,7 +70,7 @@ for art in articles:
 
 ### Run Tests
 ```bash
-cd /home/gris/.hermes/workspace/repos/cdaily
+cd cdaily
 pytest tests/ -v
 ```
 

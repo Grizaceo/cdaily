@@ -31,6 +31,7 @@ def api_stats():
 @router.post("/api/scan")
 async def api_scan(background_tasks: BackgroundTasks, request: Request):
     from ..main import limiter
+
     limiter.limit("5/minute")(lambda: None)()
     result = await run_scan()
     if result.get("ok") != 1:

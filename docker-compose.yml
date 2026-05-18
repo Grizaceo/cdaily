@@ -3,11 +3,12 @@ services:
     build: .
     container_name: cdaily_widget
     ports:
-      - "7890:7890"
+      - "54321:7890"
     volumes:
       # Monta la base de datos de blogwatcher y la configuración
       - ${HOME}/.blogwatcher-cli:/.blogwatcher-cli
-      - ./config.yaml:/app/config.yaml:ro
+      # Docker override: usa config con host: 0.0.0.0 para port forwarding
+      - /tmp/cdaily-docker-config.yaml:/app/config.yaml:ro
       # Monta el binario de blogwatcher-cli
       - ${HOME}/.local/bin/blogwatcher-cli:/usr/local/bin/blogwatcher-cli:ro
     restart: unless-stopped

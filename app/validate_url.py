@@ -8,9 +8,13 @@ ALLOWED_SCHEMES = frozenset({"http", "https"})
 # Block access to private/reserved IP ranges via scheme validation
 # This is a first-pass filter — httpx still resolves DNS, but this
 # catches file://, gopher://, data://, javascript://, etc.
-BLOCKED_HOST_SUFFIXES = frozenset({
-    ".local", ".internal", ".lan",
-})
+BLOCKED_HOST_SUFFIXES = frozenset(
+    {
+        ".local",
+        ".internal",
+        ".lan",
+    }
+)
 
 
 def validate_url(url: str) -> None:
