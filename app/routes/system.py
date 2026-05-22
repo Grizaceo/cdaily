@@ -60,7 +60,7 @@ def api_save_settings(payload: AISettingsIn, request: Request):
     """Save AI preferences settings to config.yaml and reload CONFIG."""
     try:
         # Validate endpoint URL
-        validate_url(payload.endpoint)
+        validate_url(payload.endpoint, allow_private=True)
     except ValueError as e:
         return {"ok": False, "error": f"Invalid endpoint: {str(e)}"}
 
@@ -80,7 +80,7 @@ async def api_test_settings(payload: AISettingsIn, request: Request):
 
     # Validate endpoint URL
     try:
-        validate_url(endpoint)
+        validate_url(endpoint, allow_private=True)
     except ValueError as e:
         return {"ok": False, "error": f"Invalid endpoint: {str(e)}"}
 

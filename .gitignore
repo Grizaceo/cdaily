@@ -17,4 +17,5 @@ venv/
 *.log
 node_modules/
 .DS_Store
-Thumbs.db
+# Local integration plans
+repociv_integration.md

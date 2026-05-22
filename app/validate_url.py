@@ -17,7 +17,7 @@ BLOCKED_HOST_SUFFIXES = frozenset(
 )
 
 
-def validate_url(url: str) -> None:
+def validate_url(url: str, allow_private: bool = False) -> None:
     """Validate that `url` is safe to fetch.
 
     Raises ValueError with a descriptive message if the URL is unsafe.
@@ -34,6 +34,9 @@ def validate_url(url: str) -> None:
     if not hostname:
         raise ValueError("URL has no hostname")
 
+    if allow_private:
+        return
+
     # Block obvious private/internal hosts
     lower_host = hostname.lower()
     if lower_host in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):
@@ -46,3 +49,4 @@ def validate_url(url: str) -> None:
     for suffix in BLOCKED_HOST_SUFFIXES:
         if lower_host.endswith(suffix):
             raise ValueError(f"URL points to internal/reserved host: {hostname}")
+

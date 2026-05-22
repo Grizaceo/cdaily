@@ -76,9 +76,9 @@ async def summarize_article(article_id: int, ai_prefs: dict[str, Any]) -> dict[s
 
     # AI endpoint: validate URL too (comes from config, not user, but defense in depth)
     try:
-        validate_url(endpoint)
+        validate_url(endpoint, allow_private=True)
     except ValueError:
-        return {"ok": False, "error": "AI endpoint URL is invalid or points to a private/internal host."}
+        return {"ok": False, "error": "AI endpoint URL is invalid or points to an invalid host."}
 
     headers = {"Content-Type": "application/json"}
     auth_type = ai_prefs.get("auth_type", "bearer")

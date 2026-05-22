@@ -131,11 +131,13 @@ def test_api_mark_read(client):
 def test_api_mark_unread(client):
     db = os.environ["CDAILY_DB_PATH"]
     _seed(db)
-    sqlite3.connect(db).execute("UPDATE articles SET is_read = 1 WHERE id = 2")
-    sqlite3.connect(db).commit()
+    with sqlite3.connect(db) as conn:
+        conn.execute("UPDATE articles SET is_read = 1 WHERE id = 2")
+        conn.commit()
     assert client.post("/api/articles/2/unread").json()["ok"] is True
-    cur = sqlite3.connect(db).execute("SELECT is_read FROM articles WHERE id = 2")
-    assert cur.fetchone()[0] == 0
+    with sqlite3.connect(db) as conn:
+        cur = conn.execute("SELECT is_read FROM articles WHERE id = 2")
+        assert cur.fetchone()[0] == 0
 
 
 def test_api_toggle_star(client):
@@ -195,3 +197,45 @@ def test_api_article_image_no_url(client):
     db = os.environ["CDAILY_DB_PATH"]
     _seed(db)
     assert client.get("/api/articles/1/image").status_code == 200
+
+
+def test_api_settings_flow(client):
+    # Test GET settings
+    res = client.get("/api/settings")
+    assert res.status_code == 200
+
+    # Test POST settings
+    payload = {
+        "enabled": True,
+        "endpoint": "http://localhost:12345/v1/chat/completions",
+        "api_key": "test_key",
+        "auth_type": "bearer",
+        "auth_header_name": "",
+        "model": "test_model",
+        "system_prompt": "Test Prompt",
+        "max_content_chars": 15000
+    }
+    res = client.post("/api/settings", json=payload)
+    assert res.status_code == 200
+    assert res.json()["ok"] is True
+
+    # Test that config is updated
+    res = client.get("/api/settings")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["enabled"] is True
+    assert data["model"] == "test_model"
+    assert data["max_content_chars"] == 15000
+
+    # Test connection test endpoint (can be True or False depending on local server availability)
+    res = client.post("/api/settings/test", json=payload)
+    assert res.status_code == 200
+    data = res.json()
+    assert "ok" in data
+    assert isinstance(data["ok"], bool)
+    if data["ok"]:
+        assert "message" in data
+    else:
+        assert "error" in data
+
+
