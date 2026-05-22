@@ -59,3 +59,15 @@ class ScanOut(BaseModel):
     stderr: str = ""
     returncode: int = 0
     error: Optional[str] = None
+
+
+class AISettingsIn(BaseModel):
+    enabled: bool
+    endpoint: str
+    api_key: Optional[str] = ""
+    auth_type: Optional[str] = "none"
+    auth_header_name: Optional[str] = ""
+    model: str
+    system_prompt: str
+    max_content_chars: int
+

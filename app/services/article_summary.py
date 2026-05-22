@@ -81,9 +81,15 @@ async def summarize_article(article_id: int, ai_prefs: dict[str, Any]) -> dict[s
         return {"ok": False, "error": "AI endpoint URL is invalid or points to a private/internal host."}
 
     headers = {"Content-Type": "application/json"}
-    api_key = ai_prefs.get("api_key")
-    if api_key:
-        headers["Authorization"] = f"Bearer {api_key}"
+    auth_type = ai_prefs.get("auth_type", "bearer")
+    api_key = ai_prefs.get("api_key", "")
+    if api_key and auth_type != "none":
+        if auth_type == "custom":
+            header_name = ai_prefs.get("auth_header_name", "Authorization")
+            headers[header_name] = api_key
+        else:
+            # Default or explicit bearer
+            headers["Authorization"] = f"Bearer {api_key}"
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:

@@ -91,6 +91,38 @@ def load_config(config_path: str | None = None) -> dict:
     return raw
 
 
+def save_ai_preferences(new_prefs: dict) -> None:
+    """Updates ai_preferences in config.yaml and reloads CONFIG in-place."""
+    config_path = os.environ.get("CDAILY_CONFIG", str(Path(__file__).parent.parent / "config.yaml"))
+    
+    raw = {}
+    if os.path.exists(config_path):
+        with open(config_path, "r", encoding="utf-8") as f:
+            try:
+                raw = yaml.safe_load(f) or {}
+            except Exception:
+                raw = {}
+
+    raw["ai_preferences"] = {
+        "enabled": bool(new_prefs.get("enabled")),
+        "endpoint": str(new_prefs.get("endpoint", "")).strip(),
+        "api_key": str(new_prefs.get("api_key", "")).strip(),
+        "auth_type": str(new_prefs.get("auth_type", "none")).strip(),
+        "auth_header_name": str(new_prefs.get("auth_header_name", "")).strip(),
+        "model": str(new_prefs.get("model", "")).strip(),
+        "system_prompt": str(new_prefs.get("system_prompt", "Summarize this.")).strip(),
+        "max_content_chars": int(new_prefs.get("max_content_chars", 12000)),
+    }
+
+    with open(config_path, "w", encoding="utf-8") as f:
+        yaml.safe_dump(raw, f, allow_unicode=True, sort_keys=False)
+
+    # Reload global CONFIG dictionary in-place
+    loaded = load_config(config_path)
+    CONFIG.clear()
+    CONFIG.update(loaded)
+
+
 CONFIG = load_config()
 DB_PATH: Path = CONFIG["db_path"]
 BLOG_CATEGORIES: Dict[str, str] = CONFIG.get("blog_categories", DEFAULT_BLOG_CATEGORIES)
