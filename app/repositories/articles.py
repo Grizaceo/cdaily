@@ -231,8 +231,8 @@ def save_ai_summary(article_id: int, summary: str) -> None:
             )
 
 
-def get_article_og_image(article_id: int) -> str | None:
-    """Return cached og:image URL if any."""
+def get_article_og_image(article_id: int) -> tuple[bool, str | None]:
+    """Return (exists, og:image URL) from cache if any."""
     with closing(get_connection()) as conn:
         cur = conn.execute(
             "SELECT image_url FROM cdaily_article_images WHERE article_id = ?",
@@ -240,8 +240,8 @@ def get_article_og_image(article_id: int) -> str | None:
         )
         row = cur.fetchone()
     if row:
-        return row["image_url"] or None
-    return None
+        return True, row["image_url"]
+    return False, None
 
 
 def save_article_og_image(article_id: int, image_url: str | None) -> None:

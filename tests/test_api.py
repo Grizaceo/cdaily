@@ -261,4 +261,84 @@ def test_api_settings_flow(client):
     assert data["model"] == "google/gemini-2.5-flash"
 
 
+def test_extract_og_image_resolves_relative_urls():
+    from app.services.article_images import extract_og_image
+
+    html = """
+    <html>
+      <head>
+        <meta property="og:image" content="/assets/img/hero.png" />
+      </head>
+    </html>
+    """
+    # Without base_url, returns relative
+    assert extract_og_image(html) == "/assets/img/hero.png"
+    # With base_url, returns absolute resolved URL
+    assert extract_og_image(html, base_url="https://example.com/news/1") == "https://example.com/assets/img/hero.png"
+
+    # Test twitter:image relative URL
+    html_tw = """
+    <html>
+      <head>
+        <meta name="twitter:image" content="images/pic.png" />
+      </head>
+    </html>
+    """
+    assert extract_og_image(html_tw, base_url="https://example.com/news/1") == "https://example.com/news/images/pic.png"
+
+    # Test relative starting with //
+    html_proto = """
+    <html>
+      <head>
+        <meta property="og:image" content="//cdn.example.com/pic.png" />
+      </head>
+    </html>
+    """
+    assert extract_og_image(html_proto, base_url="https://example.com/news/1") == "https://cdn.example.com/pic.png"
+
+
+def test_get_article_og_image_tuple_signature(client):
+    from app.repositories.articles import get_article_og_image, save_article_og_image
+    db = os.environ["CDAILY_DB_PATH"]
+    _seed(db)
+
+    # 1. Initially, no image cache exists
+    exists, image_url = get_article_og_image(1)
+    assert exists is False
+    assert image_url is None
+
+    # 2. Save a valid image URL
+    save_article_og_image(1, "https://example.com/pic.png")
+    exists, image_url = get_article_og_image(1)
+    assert exists is True
+    assert image_url == "https://example.com/pic.png"
+
+    # 3. Save a NULL image (representing failed scrape) on article 2
+    save_article_og_image(2, None)
+    exists, image_url = get_article_og_image(2)
+    assert exists is True
+    assert image_url is None
+
+
+def test_api_article_image_caching_behavior(client):
+    db = os.environ["CDAILY_DB_PATH"]
+    _seed(db)
+
+    # First request: will attempt scrape, fail (since example.com isn't up/SSRF guard or similar)
+    # and should save NULL in the database cache.
+    res1 = client.get("/api/articles/1/image")
+    assert res1.status_code == 200
+    data1 = res1.json()
+    assert data1["image_url"] is None
+    assert data1["cached"] is False
+
+    # Second request: must serve from cache!
+    res2 = client.get("/api/articles/1/image")
+    assert res2.status_code == 200
+    data2 = res2.json()
+    assert data2["image_url"] is None
+    assert data2["cached"] is True
+
+
+
 

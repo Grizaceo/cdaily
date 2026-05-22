@@ -17,6 +17,7 @@ router = APIRouter(prefix="/api/articles", tags=["articles"])
 _RATE_FAST = "60/minute"
 _RATE_SLOW = "10/minute"
 _RATE_BULK = "5/minute"
+_RATE_IMAGES = "250/minute"
 
 
 @router.get("", response_model=ArticlesList)
@@ -87,6 +88,6 @@ def api_mark_all_read(request: Request):
 
 
 @router.get("/{article_id}/image")
-@limiter.limit(_RATE_SLOW)
+@limiter.limit(_RATE_IMAGES)
 async def api_article_image(article_id: int, request: Request):
     return await fetch_article_image(article_id)

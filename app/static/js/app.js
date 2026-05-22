@@ -369,8 +369,9 @@ function renderArticles() {
     grid.innerHTML = state.articles.map(article => {
         const isRead = article.is_read ? "is-read" : "";
         const isStarred = article.is_starred ? "is-starred" : "";
-        const imgHtml = article.image_url
-            ? `<div class="card-image" style="background-image: ${safeCssImageUrl(article.image_url)}"></div>`
+        const cssUrl = safeCssImageUrl(article.image_url);
+        const imgHtml = cssUrl
+            ? `<div class="card-image" style="background-image: ${cssUrl}"></div>`
             : `<div class="card-image is-placeholder" data-id="${article.id}">
                  <div class="placeholder-icon">🖼️</div>
                </div>`;
@@ -440,16 +441,15 @@ function renderRatingStars(container, rating) {
 async function fetchImageOnDemand(id, el) {
     try {
         const res = await api("GET", `/api/articles/${id}/image`);
-        if (res.image_url) {
-            const cssUrl = safeCssImageUrl(res.image_url);
-            if (cssUrl) {
-                el.style.backgroundImage = cssUrl;
-                el.classList.remove("is-placeholder");
-                el.innerHTML = ""; // Clear placeholder icon
-            } else {
-                // Leave placeholder but maybe change icon to indicate none found
-                el.querySelector(".placeholder-icon").textContent = "🗞️";
-            }
+        const cssUrl = res.image_url ? safeCssImageUrl(res.image_url) : null;
+        if (cssUrl) {
+            el.style.backgroundImage = cssUrl;
+            el.classList.remove("is-placeholder");
+            el.innerHTML = ""; // Clear placeholder icon
+        } else {
+            // No image found, clear placeholder pulsing state and show low-opacity paper icon
+            el.classList.remove("is-placeholder");
+            el.innerHTML = `<div class="placeholder-icon" style="animation: none; opacity: 0.15;">🗞️</div>`;
         }
     } catch (err) {
         console.error("Failed to fetch image on demand", err);

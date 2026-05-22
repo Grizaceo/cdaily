@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from typing import Any
+import urllib.parse
 
 import httpx
 from bs4 import BeautifulSoup
@@ -18,8 +19,8 @@ from ..validate_url import validate_url
 
 
 async def fetch_article_image(article_id: int) -> dict[str, Any]:
-    cached = get_article_og_image(article_id)
-    if cached is not None:
+    exists, cached = get_article_og_image(article_id)
+    if exists:
         return {"image_url": cached, "cached": True}
 
     url, _ = get_article_url_and_summary(article_id)
@@ -30,6 +31,7 @@ async def fetch_article_image(article_id: int) -> dict[str, Any]:
     try:
         validate_url(url)
     except ValueError as e:
+        save_article_og_image(article_id, None)
         return {"image_url": None, "cached": False, "error": str(e)}
 
     try:
@@ -37,10 +39,11 @@ async def fetch_article_image(article_id: int) -> dict[str, Any]:
             headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
             resp = await client.get(url, headers=headers)
             resp.raise_for_status()
-            og_image = extract_og_image(resp.text)
+            og_image = extract_og_image(resp.text, base_url=url)
             save_article_og_image(article_id, og_image)
             return {"image_url": og_image, "cached": False}
     except Exception as exc:
+        save_article_og_image(article_id, None)
         return {"image_url": None, "cached": False, "error": str(exc)}
 
 
@@ -63,7 +66,7 @@ async def fetch_missing_images(limit: int = 50) -> None:
                     continue
                 resp = await client.get(art["url"], headers=headers)
                 if resp.status_code == 200:
-                    og_image = extract_og_image(resp.text)
+                    og_image = extract_og_image(resp.text, base_url=art["url"])
                     save_article_og_image(art["id"], og_image)
                 else:
                     save_article_og_image(art["id"], None)
@@ -72,17 +75,23 @@ async def fetch_missing_images(limit: int = 50) -> None:
             await asyncio.sleep(1)
 
 
-def extract_og_image(html: str) -> str | None:
-    """Try to extract the og:image meta tag from HTML with fallbacks."""
+def extract_og_image(html: str, base_url: str | None = None) -> str | None:
+    """Try to extract the og:image meta tag from HTML with fallbacks, resolving relative URLs."""
     soup = BeautifulSoup(html, "html.parser")
 
     og = soup.find("meta", property="og:image")
     if og and og.get("content"):
-        return og["content"].strip()
+        raw_url = og["content"].strip()
+        if base_url:
+            return urllib.parse.urljoin(base_url, raw_url)
+        return raw_url
 
     tw = soup.find("meta", attrs={"name": "twitter:image"})
     if tw and tw.get("content"):
-        return tw["content"].strip()
+        raw_url = tw["content"].strip()
+        if base_url:
+            return urllib.parse.urljoin(base_url, raw_url)
+        return raw_url
 
     for img in soup.find_all("img"):
         src = img.get("src")
@@ -99,7 +108,11 @@ def extract_og_image(html: str) -> str | None:
 
         if any(x in src.lower() for x in ["icon", "logo", "tracker", "pixel", "avatar"]):
             continue
-        if src.startswith("http"):
-            return src
+
+        resolved_src = src.strip()
+        if base_url:
+            resolved_src = urllib.parse.urljoin(base_url, resolved_src)
+        if resolved_src.startswith("http"):
+            return resolved_src
 
     return None

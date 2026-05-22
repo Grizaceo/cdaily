@@ -37,9 +37,9 @@ app.state.limiter = limiter
 # CSP: basic defense-in-depth — restricts inline styles/scripts
 CSP = (
     "default-src 'self'; "
-    "style-src 'self' https://fonts.googleapis.com; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
     "font-src https://fonts.gstatic.com; "
-    "img-src 'self' https:; "
+    "img-src 'self' http: https: data:; "
     "script-src 'self'"
 )
 
