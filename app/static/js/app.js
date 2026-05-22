@@ -78,6 +78,130 @@ function bindEvents() {
         toast("Feed actualizado");
     });
 
+    // Settings modal binding
+    const settingsBtn = document.getElementById("settings-btn");
+    const settingsModal = document.getElementById("settings-modal");
+    const settingsCloseBtn = document.getElementById("settings-close-btn");
+    const settingsForm = document.getElementById("settings-form");
+    const settingsTestBtn = document.getElementById("settings-test-btn");
+    const authTypeSelect = document.getElementById("ai-auth-type");
+    const authHeaderNameContainer = document.getElementById("auth-header-name-container");
+    const apiKeyContainer = document.getElementById("api-key-container");
+    const alertContainer = document.getElementById("settings-alert-container");
+
+    const updateAuthFieldsVisibility = () => {
+        const type = authTypeSelect.value;
+        if (type === "none") {
+            authHeaderNameContainer.hidden = true;
+            apiKeyContainer.hidden = true;
+        } else if (type === "bearer") {
+            authHeaderNameContainer.hidden = true;
+            apiKeyContainer.hidden = false;
+        } else if (type === "custom") {
+            authHeaderNameContainer.hidden = false;
+            apiKeyContainer.hidden = false;
+        }
+    };
+
+    authTypeSelect.addEventListener("change", updateAuthFieldsVisibility);
+
+    const showAlert = (message, type = "success") => {
+        alertContainer.textContent = message;
+        alertContainer.className = `settings-alert ${type}`;
+        alertContainer.hidden = false;
+    };
+
+    const hideAlert = () => {
+        alertContainer.hidden = true;
+        alertContainer.textContent = "";
+    };
+
+    settingsBtn.addEventListener("click", async () => {
+        hideAlert();
+        settingsModal.hidden = false;
+        try {
+            const config = await api("GET", "/api/settings");
+            document.getElementById("ai-enabled").checked = !!config.enabled;
+            document.getElementById("ai-endpoint").value = config.endpoint || "";
+            document.getElementById("ai-api-key").value = config.api_key || "";
+            document.getElementById("ai-model").value = config.model || "";
+            document.getElementById("ai-prompt").value = config.system_prompt || "";
+            document.getElementById("ai-max-chars").value = config.max_content_chars || 12000;
+            authTypeSelect.value = config.auth_type || "none";
+            document.getElementById("ai-auth-header-name").value = config.auth_header_name || "";
+            updateAuthFieldsVisibility();
+        } catch (err) {
+            showAlert("No se pudo cargar la configuración de la IA", "error");
+        }
+    });
+
+    settingsCloseBtn.addEventListener("click", () => {
+        settingsModal.hidden = true;
+    });
+
+    // Close when clicking outside card
+    settingsModal.addEventListener("click", (e) => {
+        if (e.target === settingsModal) {
+            settingsModal.hidden = true;
+        }
+    });
+
+    const getFormData = () => {
+        return {
+            enabled: document.getElementById("ai-enabled").checked,
+            endpoint: document.getElementById("ai-endpoint").value.trim(),
+            api_key: document.getElementById("ai-api-key").value.trim(),
+            model: document.getElementById("ai-model").value.trim(),
+            system_prompt: document.getElementById("ai-prompt").value.trim(),
+            max_content_chars: parseInt(document.getElementById("ai-max-chars").value) || 12000,
+            auth_type: authTypeSelect.value,
+            auth_header_name: document.getElementById("ai-auth-header-name").value.trim()
+        };
+    };
+
+    settingsTestBtn.addEventListener("click", async () => {
+        hideAlert();
+        settingsTestBtn.textContent = "Probando...";
+        settingsTestBtn.disabled = true;
+        try {
+            const payload = getFormData();
+            const res = await api("POST", "/api/settings/test", payload);
+            if (res.ok) {
+                showAlert(res.message, "success");
+            } else {
+                showAlert(res.error || "Error desconocido al probar conexión", "error");
+            }
+        } catch (err) {
+            showAlert(`Error de red: ${err.message}`, "error");
+        } finally {
+            settingsTestBtn.textContent = "Probar Conexión";
+            settingsTestBtn.disabled = false;
+        }
+    });
+
+    settingsForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        hideAlert();
+        const saveBtn = document.getElementById("settings-save-btn");
+        saveBtn.textContent = "Guardando...";
+        saveBtn.disabled = true;
+        try {
+            const payload = getFormData();
+            const res = await api("POST", "/api/settings", payload);
+            if (res.ok) {
+                toast("Configuración de IA guardada");
+                settingsModal.hidden = true;
+            } else {
+                showAlert(res.error || "Error al guardar configuración", "error");
+            }
+        } catch (err) {
+            showAlert(`Error de red: ${err.message}`, "error");
+        } finally {
+            saveBtn.textContent = "Guardar";
+            saveBtn.disabled = false;
+        }
+    });
+
     // Article card interactions (delegated)
     document.getElementById("articles-grid").addEventListener("click", async (e) => {
         const card = e.target.closest(".article-card");
