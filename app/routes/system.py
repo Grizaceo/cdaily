@@ -10,6 +10,7 @@ from fastapi.templating import Jinja2Templates
 
 from ..config import CONFIG
 from ..database import get_stats
+from ..rate_limiter import limiter
 from ..services.article_images import fetch_missing_images
 from ..services.scan import run_scan
 
@@ -29,12 +30,11 @@ def api_stats():
 
 
 @router.post("/api/scan")
+@limiter.limit("5/minute")
 async def api_scan(background_tasks: BackgroundTasks, request: Request):
-    from ..main import limiter
-
-    limiter.limit("5/minute")(lambda: None)()
     result = await run_scan()
-    if result.get("ok") != 1:
+    ok = bool(result.get("ok"))
+    if not ok:
         return {"ok": False, "error": result.get("error", "Unknown scan error")}
 
     background_tasks.add_task(fetch_missing_images)

@@ -1,56 +1,61 @@
-# models.py — Pydantic models for request/response validation
+# models.py — Pydantic schemas for request/response validation
+
+from __future__ import annotations
 
 from typing import Optional
 
+from pydantic import BaseModel, Field
 
-class ArticleResponse:
+
+class ArticleOut(BaseModel):
     """Outgoing article representation."""
 
-    def __init__(
-        self,
-        id: int,
-        title: str,
-        url: str,
-        summary: str,
-        published_at: Optional[str],
-        is_read: bool,
-        is_starred: bool,
-        blog_name: str,
-        category: str,
-        emoji: str,
-    ):
-        self.id = id
-        self.title = title
-        self.url = url
-        self.summary = summary
-        self.published_at = published_at
-        self.is_read = is_read
-        self.is_starred = is_starred
-        self.blog_name = blog_name
-        self.category = category
-        self.emoji = emoji
+    id: int
+    title: str
+    url: str
+    summary: str
+    published_date: Optional[str] = None
+    is_read: bool
+    is_starred: bool
+    blog_name: str
+    category: str
+    emoji: str
+    image_url: Optional[str] = None
+    user_rating: Optional[int] = None
+    personalized_score: Optional[float] = None
 
 
-class ArticlesListResponse:
-    """Response for /api/articles."""
-
-    def __init__(self, articles: list[ArticleResponse], count: int):
-        self.articles = articles
-        self.count = count
+class ArticlesList(BaseModel):
+    articles: list[ArticleOut]
+    count: int
 
 
-class StatsResponse:
-    """Response for /api/stats."""
-
-    def __init__(self, total: int, by_category: dict[str, int]):
-        self.total = total
-        self.by_category = by_category
+class StatsOut(BaseModel):
+    total: int
+    by_category: dict[str, int]
 
 
-class ActionResponse:
-    """Generic ok/error response."""
+class ActionOut(BaseModel):
+    ok: bool
+    count: int = 0
 
-    def __init__(self, ok: bool, **kwargs):
-        self.ok = ok
-        for k, v in kwargs.items():
-            setattr(self, k, v)
+
+class RatingIn(BaseModel):
+    """Rating payload for POST /articles/{id}/rate."""
+
+    rating: Optional[int] = Field(None, ge=1, le=5)
+
+
+class SummaryOut(BaseModel):
+    ok: bool
+    summary: Optional[str] = None
+    cached: Optional[bool] = None
+    error: Optional[str] = None
+
+
+class ScanOut(BaseModel):
+    ok: bool
+    stdout: str = ""
+    stderr: str = ""
+    returncode: int = 0
+    error: Optional[str] = None

@@ -1,9 +1,3 @@
-"""
-tests/test_api.py — API smoke tests using an in-memory SQLite database.
-Run with: pytest tests/ -v
-No external dependencies (blogwatcher-cli, real DB, etc.).
-"""
-
 from __future__ import annotations
 
 import os
@@ -12,36 +6,25 @@ import tempfile
 from pathlib import Path
 
 import pytest
+import yaml
+from fastapi.testclient import TestClient
 
 
-@pytest.fixture(autouse=True)
-def _set_test_db_env():
-    """Point CDaily at a temporary test database before any imports."""
-    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
-        db_path = f.name
-    os.environ["CDAILY_DB_PATH"] = db_path
-    yield
-    os.environ.pop("CDAILY_DB_PATH", None)
-    if Path(db_path).exists():
-        Path(db_path).unlink()
+def _tmp_db() -> str:
+    fd, path = tempfile.mkstemp(suffix=".db")
+    os.close(fd)
+    return path
 
 
 @pytest.fixture
-def conn():
-    """Create a fresh test database with CDaily's expected schema + sample data."""
-    db_path = Path(os.environ["CDAILY_DB_PATH"])
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
+def client(monkeypatch, tmp_path):
+    """TestClient backed by a fresh temp DB + config.yaml."""
+    db_path = _tmp_db()
 
-    # Create blogwatcher-cli tables (what CDaily reads)
+    # Create blogwatcher-cli shared schema in the temp DB
+    conn = sqlite3.connect(db_path)
     conn.executescript("""
-        CREATE TABLE blogs (
-            id INTEGER PRIMARY KEY,
-            name TEXT NOT NULL,
-            url TEXT NOT NULL,
-            feed_url TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
+        CREATE TABLE blogs (id INTEGER PRIMARY KEY, name TEXT NOT NULL, url TEXT NOT NULL, feed_url TEXT);
         CREATE TABLE articles (
             id INTEGER PRIMARY KEY,
             blog_id INTEGER REFERENCES blogs(id),
@@ -51,77 +34,164 @@ def conn():
             summary TEXT,
             author TEXT,
             categories TEXT,
-            published_date DATETIME,
+            published_date TEXT,
             guid TEXT,
             is_read INTEGER DEFAULT 0,
-            is_starred INTEGER DEFAULT 0,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
-    """)
-
-    # Insert test data
-    conn.execute(
-        "INSERT INTO blogs (id, name, url, feed_url) "
-        "VALUES (1, 'Test Blog', 'https://example.com', 'https://example.com/feed')"
-    )
-    conn.execute(
-        "INSERT INTO blogs (id, name, url, feed_url) "
-        "VALUES (2, 'Ars Technica', 'https://arstechnica.com', "
-        "'https://feeds.arstechnica.com')"
-    )
-    conn.execute(
-        "INSERT INTO articles (id, blog_id, title, url, published_date, is_read) VALUES "
-        "(1, 1, 'Test Article', 'https://example.com/test', '2026-05-13', 0)"
-    )
-    conn.execute(
-        "INSERT INTO articles (id, blog_id, title, url, published_date, is_read) VALUES "
-        "(2, 2, 'Second Article', 'https://arstechnica.com/article', '2026-05-12', 1)"
-    )
+        """)
     conn.commit()
+    conn.close()
 
-    yield conn
+    # Write minimal config.yaml that points to our temp DB
+    cfg_file = tmp_path / "config.yaml"
+    cfg_file.write_text(
+        yaml.safe_dump(
+            {
+                "host": "127.0.0.1",
+                "port": 7890,
+                "db_path": db_path,
+                "scan_interval_minutes": 30,
+                "refresh_interval_seconds": 60,
+                "log_level": "INFO",
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("CDAILY_CONFIG", str(cfg_file))
+    monkeypatch.setenv("CDAILY_DB_PATH", db_path)
+
+    # Patch config.DB_PATH so that get_connection() sees our temp DB
+    import app.config as cfg_mod
+
+    monkeypatch.setattr(cfg_mod, "DB_PATH", Path(db_path))
+
+    # Need to ensure that app.repositories.bootstrap uses the patched DB_PATH.
+    # bootstrap imports DB_PATH at module load; but it uses a dynamic get from config now.
+    # Still, import after patching.
+    from app.main import app
+
+    with TestClient(app) as tc:
+        yield tc
+
+    Path(db_path).unlink(missing_ok=True)
+
+
+def _seed(db_path: str) -> None:
+    conn = sqlite3.connect(db_path)
+    conn.executescript("""
+        DELETE FROM articles; DELETE FROM blogs;
+        INSERT INTO blogs (id, name, url, feed_url) VALUES
+            (1, 'Ars Technica', 'https://arstechnica.com', 'https://feeds.arstechnica.com'),
+            (2, 'News Chile',   'https://example.cl',      'https://example.cl/rss');
+        INSERT INTO articles (id, blog_id, title, url, published_date, is_read, categories) VALUES
+            (1, 1, 'Rust in Linux 6.15', 'https://arstechnica.com/rust', '2026-05-18', 0, '["tech"]'),
+            (2, 2, 'Copper strike ends', 'https://example.cl/copper',      '2026-05-17', 1, '["news"]');
+        """)
+    conn.commit()
     conn.close()
 
 
-def test_blogs_exist(conn):
-    """At least one blog should be registered in the test DB."""
-    cur = conn.execute("SELECT COUNT(*) FROM blogs")
-    count = cur.fetchone()[0]
-    assert count >= 1, f"Expected blogs, got {count}"
+# Tests
 
 
-def test_articles_exist(conn):
-    """At least one article should exist in the test DB."""
-    cur = conn.execute("SELECT COUNT(*) FROM articles")
-    count = cur.fetchone()[0]
-    assert count > 0, "No articles found"
+def test_homepage(client):
+    assert client.get("/").status_code == 200
+    assert "CDaily" in client.get("/").text
 
 
-def test_articles_have_required_columns(conn):
-    """Articles must have the columns CDaily reads."""
-    cur = conn.execute("SELECT id, title, url, published_date, is_read FROM articles LIMIT 1")
-    row = cur.fetchone()
-    assert row is not None, "No articles to inspect"
-    assert {"id", "title", "url", "published_date", "is_read"}.issubset(set(row.keys()))
+def test_api_articles_empty(client):
+    data = client.get("/api/articles").json()
+    assert data["count"] == 0
 
 
-def test_blogs_have_required_columns(conn):
-    """Blogs must have the columns CDaily reads."""
-    cur = conn.execute("SELECT id, name, url FROM blogs LIMIT 1")
-    row = cur.fetchone()
-    assert row is not None, "No blogs to inspect"
-    assert {"id", "name", "url"}.issubset(set(row.keys()))
+def test_api_articles_with_data(client):
+    db = os.environ["CDAILY_DB_PATH"]
+    _seed(db)
+    data = client.get("/api/articles").json()
+    assert data["count"] == 2
+    assert any(a["title"] == "Rust in Linux 6.15" for a in data["articles"])
 
 
-def test_articles_can_be_read(conn):
-    """Verify mark-read logic works against the test DB."""
-    conn.execute("UPDATE articles SET is_read = 1 WHERE id = 1")
-    conn.commit()
-    cur = conn.execute("SELECT is_read FROM articles WHERE id = 1")
-    assert cur.fetchone()["is_read"] == 1
+def test_api_articles_filter_category(client):
+    db = os.environ["CDAILY_DB_PATH"]
+    _seed(db)
+    data = client.get("/api/articles?cat=tech").json()
+    assert all(a["category"] == "tech" for a in data["articles"])
 
 
-def test_fresh_article_is_unread(conn):
-    """Newly inserted articles should default to is_read=0."""
-    cur = conn.execute("SELECT is_read FROM articles WHERE id = 1")
-    assert cur.fetchone()["is_read"] == 0
+def test_api_mark_read(client):
+    db = os.environ["CDAILY_DB_PATH"]
+    _seed(db)
+    assert client.post("/api/articles/1/read").json()["ok"] is True
+    cur = sqlite3.connect(db).execute("SELECT is_read FROM articles WHERE id = 1")
+    assert cur.fetchone()[0] == 1
+
+
+def test_api_mark_unread(client):
+    db = os.environ["CDAILY_DB_PATH"]
+    _seed(db)
+    sqlite3.connect(db).execute("UPDATE articles SET is_read = 1 WHERE id = 2")
+    sqlite3.connect(db).commit()
+    assert client.post("/api/articles/2/unread").json()["ok"] is True
+    cur = sqlite3.connect(db).execute("SELECT is_read FROM articles WHERE id = 2")
+    assert cur.fetchone()[0] == 0
+
+
+def test_api_toggle_star(client):
+    db = os.environ["CDAILY_DB_PATH"]
+    _seed(db)
+    js = client.post("/api/articles/1/star").json()
+    assert js["ok"] is True and js["starred"] is True
+    js = client.post("/api/articles/1/star").json()
+    assert js["starred"] is False
+
+
+def test_api_mark_all_read(client):
+    db = os.environ["CDAILY_DB_PATH"]
+    _seed(db)
+    js = client.post("/api/articles/read-all").json()
+    assert js["ok"] is True and js["count"] == 1
+
+
+def test_api_rate_article(client):
+    db = os.environ["CDAILY_DB_PATH"]
+    _seed(db)
+    js = client.post("/api/articles/1/rate", json={"rating": 5}).json()
+    assert js["ok"] is True and js["rating"] == 5
+    js = client.post("/api/articles/1/rate", json={"rating": None}).json()
+    assert js["rating"] is None
+
+
+def test_api_rate_article_bad_value(client):
+    db = os.environ["CDAILY_DB_PATH"]
+    _seed(db)
+    assert client.post("/api/articles/1/rate", json={"rating": 6}).status_code == 422
+
+
+def test_api_stats(client):
+    db = os.environ["CDAILY_DB_PATH"]
+    _seed(db)
+    data = client.get("/api/stats").json()
+    assert data["total"] == 1
+    assert "by_category" in data
+
+
+def test_api_scan_disabled(client, monkeypatch):
+    db = os.environ["CDAILY_DB_PATH"]
+    _seed(db)
+
+    async def mock_fail():
+        return {"ok": 0, "error": "blogwatcher-cli not found in PATH"}
+
+    monkeypatch.setattr("app.routes.system.run_scan", mock_fail)
+    data = client.post("/api/scan").json()
+    assert data["ok"] is False
+    err = (data.get("error") or "").lower() + (data.get("stderr") or "").lower()
+    assert "not found" in err or "no such file" in err
+
+
+def test_api_article_image_no_url(client):
+    db = os.environ["CDAILY_DB_PATH"]
+    _seed(db)
+    assert client.get("/api/articles/1/image").status_code == 200

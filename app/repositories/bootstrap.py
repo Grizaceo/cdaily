@@ -5,7 +5,23 @@ from __future__ import annotations
 import sqlite3
 from contextlib import closing
 
-from ..config import DB_PATH
+from ..config import DB_PATH as _DB_PATH  # keep for backwards compat, but prefer dynamic
+
+
+class SchemaError(ValueError):
+    """Raised when the shared DB schema does not meet CDaily's expectations."""
+
+
+def get_connection(validate: bool = False) -> sqlite3.Connection:
+    """Returns a connection with row factory = sqlite3.Row."""
+    from .. import config as _cfg_mod
+
+    db_path = getattr(_cfg_mod, "DB_PATH", _DB_PATH)
+    if validate and not db_path.exists():
+        raise RuntimeError(f"Database not found: {db_path}")
+    conn = sqlite3.connect(str(db_path), check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 
 def validate_db_schema() -> None:
@@ -18,18 +34,18 @@ def validate_db_schema() -> None:
         required_articles = {"id", "title", "url", "published_date", "is_read", "blog_id"}
         if not required_articles.issubset(articles_cols):
             missing = required_articles - articles_cols
-            raise ValueError(f"Articles table missing columns: {missing}")
+            raise SchemaError(f"articles table missing columns: {missing}")
 
         cur.execute("PRAGMA table_info(blogs)")
         blogs_cols = {row["name"] for row in cur.fetchall()}
         required_blogs = {"id", "name"}
         if not required_blogs.issubset(blogs_cols):
             missing = required_blogs - blogs_cols
-            raise ValueError(f"Blogs table missing columns: {missing}")
+            raise SchemaError(f"blogs table missing columns: {missing}")
 
 
 def init_db() -> None:
-    """Initialize CDaily's own tables in the database."""
+    """Validate shared schema and create CDaily extension tables."""
     validate_db_schema()
 
     with closing(get_connection()) as conn:
@@ -66,10 +82,3 @@ def init_db() -> None:
                     rated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
                 """)
-
-
-def get_connection() -> sqlite3.Connection:
-    """Returns a connection with row factory = sqlite3.Row."""
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    return conn
