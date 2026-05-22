@@ -238,4 +238,27 @@ def test_api_settings_flow(client):
     else:
         assert "error" in data
 
+    # Test POST settings with OpenRouter preset configuration
+    openrouter_payload = {
+        "enabled": True,
+        "endpoint": "https://openrouter.ai/api/v1/chat/completions",
+        "api_key": "sk-or-v1-test-key",
+        "auth_type": "bearer",
+        "auth_header_name": "",
+        "model": "google/gemini-2.5-flash",
+        "system_prompt": "Test Prompt",
+        "max_content_chars": 12000
+    }
+    res = client.post("/api/settings", json=openrouter_payload)
+    assert res.status_code == 200
+    assert res.json()["ok"] is True
+
+    # Test that config is updated with OpenRouter values
+    res = client.get("/api/settings")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["endpoint"] == "https://openrouter.ai/api/v1/chat/completions"
+    assert data["model"] == "google/gemini-2.5-flash"
+
+
 

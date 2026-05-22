@@ -73,14 +73,26 @@
             
             <div class="form-row">
                 <div class="form-group">
+                    <label for="ai-preset">Proveedor / Plantilla</label>
+                    <select id="ai-preset">
+                        <option value="custom">── Configuración Manual ──</option>
+                        <option value="openrouter">OpenRouter API</option>
+                        <option value="openai">OpenAI (GPT-4o)</option>
+                        <option value="deepseek">DeepSeek API</option>
+                        <option value="ollama">Ollama (Local)</option>
+                        <option value="lm-studio">LM Studio (Local)</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label for="ai-auth-type">Tipo de Autenticación</label>
                     <select id="ai-auth-type" name="auth_type">
                         <option value="none">Ninguna (Local / Ollama)</option>
-                        <option value="bearer">Bearer Token (OpenAI / DeepSeek)</option>
+                        <option value="bearer">Bearer Token (OpenAI / DeepSeek / OpenRouter)</option>
                         <option value="custom">Cabecera Personalizada</option>
                     </select>
                 </div>
             </div>
+
 
             <div class="form-row" id="auth-header-name-container" hidden>
                 <div class="form-group">

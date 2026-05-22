@@ -93,6 +93,11 @@ async def api_test_settings(payload: AISettingsIn, request: Request):
         else:
             headers["Authorization"] = f"Bearer {api_key}"
 
+    if "openrouter.ai" in endpoint.lower():
+        headers["HTTP-Referer"] = "https://github.com/Grizaceo/cdaily"
+        headers["X-Title"] = "CDaily"
+
+
     # Simple completion request to test connection
     test_payload = {
         "model": model,

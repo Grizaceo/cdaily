@@ -105,6 +105,46 @@ function bindEvents() {
 
     authTypeSelect.addEventListener("change", updateAuthFieldsVisibility);
 
+    const presetSelect = document.getElementById("ai-preset");
+    const presets = {
+        openrouter: {
+            endpoint: "https://openrouter.ai/api/v1/chat/completions",
+            model: "google/gemini-2.5-flash",
+            auth_type: "bearer"
+        },
+        openai: {
+            endpoint: "https://api.openai.com/v1/chat/completions",
+            model: "gpt-4o-mini",
+            auth_type: "bearer"
+        },
+        deepseek: {
+            endpoint: "https://api.deepseek.com/chat/completions",
+            model: "deepseek-chat",
+            auth_type: "bearer"
+        },
+        ollama: {
+            endpoint: "http://localhost:11434/v1/chat/completions",
+            model: "llama3",
+            auth_type: "none"
+        },
+        "lm-studio": {
+            endpoint: "http://localhost:12345/v1/chat/completions",
+            model: "qwen2.5-7b-instruct-1m",
+            auth_type: "none"
+        }
+    };
+
+    presetSelect.addEventListener("change", () => {
+        const val = presetSelect.value;
+        if (presets[val]) {
+            const p = presets[val];
+            document.getElementById("ai-endpoint").value = p.endpoint;
+            document.getElementById("ai-model").value = p.model;
+            authTypeSelect.value = p.auth_type;
+            updateAuthFieldsVisibility();
+        }
+    });
+
     const showAlert = (message, type = "success") => {
         alertContainer.textContent = message;
         alertContainer.className = `settings-alert ${type}`;
@@ -129,11 +169,23 @@ function bindEvents() {
             document.getElementById("ai-max-chars").value = config.max_content_chars || 12000;
             authTypeSelect.value = config.auth_type || "none";
             document.getElementById("ai-auth-header-name").value = config.auth_header_name || "";
+            
+            // Detect preset
+            let detected = "custom";
+            for (const [key, p] of Object.entries(presets)) {
+                if (config.endpoint === p.endpoint && config.auth_type === p.auth_type) {
+                    detected = key;
+                    break;
+                }
+            }
+            presetSelect.value = detected;
+
             updateAuthFieldsVisibility();
         } catch (err) {
             showAlert("No se pudo cargar la configuración de la IA", "error");
         }
     });
+
 
     settingsCloseBtn.addEventListener("click", () => {
         settingsModal.hidden = true;

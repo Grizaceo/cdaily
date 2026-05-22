@@ -91,6 +91,11 @@ async def summarize_article(article_id: int, ai_prefs: dict[str, Any]) -> dict[s
             # Default or explicit bearer
             headers["Authorization"] = f"Bearer {api_key}"
 
+    if endpoint and "openrouter.ai" in endpoint.lower():
+        headers["HTTP-Referer"] = "https://github.com/Grizaceo/cdaily"
+        headers["X-Title"] = "CDaily"
+
+
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(endpoint, json=payload, headers=headers)
