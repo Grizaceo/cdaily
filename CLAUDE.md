@@ -5,17 +5,17 @@ Minimal personal feed reader: FastAPI backend, vanilla JS frontend, reads articl
 ## Stack
 
 - Python 3.11+, FastAPI, Uvicorn, Jinja2, httpx, BeautifulSoup4, slowapi
-- `app/routes/` — HTTP API
-- `app/services/` — summaries, OG images, scan
-- `app/repositories/` — SQLite access
-- `app/static/`, `app/templates/` — UI
+- `cdaily/routes/` — HTTP API
+- `cdaily/services/` — summaries, OG images, scan
+- `cdaily/repositories/` — SQLite access
+- `cdaily/static/`, `cdaily/templates/` — UI
 
 ## Testing
 
 ```bash
 pytest tests/ -v
-python -m black app tests
-python -m flake8 app tests
+python -m black cdaily tests
+python -m flake8 cdaily tests
 ```
 
 Tests use in-memory SQLite fixtures; no live blogwatcher-cli DB required.
@@ -24,7 +24,7 @@ Tests use in-memory SQLite fixtures; no live blogwatcher-cli DB required.
 
 ```bash
 pip install -r requirements.txt
-python -m app.main
+python -m cdaily.main
 # http://127.0.0.1:7890
 ```
 

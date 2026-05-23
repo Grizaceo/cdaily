@@ -121,12 +121,16 @@ app.include_router(articles_router)
 app.include_router(blogs_router)
 
 
-if __name__ == "__main__":
+def main() -> None:
     import uvicorn
 
     uvicorn.run(
-        "app.main:app",
+        "cdaily.main:app",
         host=CONFIG["host"],
         port=7890,
         reload=False,
     )
+
+
+if __name__ == "__main__":
+    main()

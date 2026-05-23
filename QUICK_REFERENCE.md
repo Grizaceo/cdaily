@@ -6,11 +6,11 @@
 
 | Issue | Solution | File |
 | --- | --- | --- |
-| Missing config defaults crash | Added DEFAULT_BLOG_CATEGORIES and DEFAULT_CATEGORY_EMOJI | app/config.py |
-| Config not validated | Added validate_config() called at startup | app/config.py |
-| DB schema not checked | Added validate_db_schema() in init_db() | app/database.py |
-| Personalization logic broken | Fixed get_personalization_profile() duplicate query | app/database.py |
-| No rate limiting | Added asyncio.sleep(1) in fetch_missing_images() | app/main.py |
+| Missing config defaults crash | Added DEFAULT_BLOG_CATEGORIES and DEFAULT_CATEGORY_EMOJI | cdaily/config.py |
+| Config not validated | Added validate_config() called at startup | cdaily/config.py |
+| DB schema not checked | Added validate_db_schema() in init_db() | cdaily/database.py |
+| Personalization logic broken | Fixed get_personalization_profile() duplicate query | cdaily/database.py |
+| No rate limiting | Added asyncio.sleep(1) in fetch_missing_images() | cdaily/main.py |
 | Code quality issues | Fixed all flake8/Black issues, formatted codebase | all .py files |
 | No CI/CD pipeline | Added GitHub Actions workflow | .github/workflows/ci.yml |
 | Incomplete documentation | Updated README with troubleshooting | README.md |
@@ -76,17 +76,17 @@ pytest tests/ -v
 
 ### Check Linting
 ```bash
-flake8 app tests
+flake8 cdaily tests
 ```
 
 ### Format Code
 ```bash
-black app tests
+black cdaily tests
 ```
 
 ### Start App
 ```bash
-python -m app.main
+python -m cdaily.main
 # Open http://localhost:7890
 ```
 
@@ -124,7 +124,7 @@ ai_preferences:
 ### Override AI Endpoint (env var)
 ```bash
 export CDAILY_AI_ENDPOINT="http://new-endpoint:8000/v1/chat/completions"
-python -m app.main
+python -m cdaily.main
 ```
 
 ---
@@ -172,7 +172,7 @@ curl -X POST http://localhost:12345/v1/chat/completions \
 
 ```
 cdaily/
-├── app/
+├── cdaily/
 │   ├── main.py              # FastAPI routes
 │   ├── config.py            # Configuration loading & validation
 │   ├── database.py          # Database queries & schema validation

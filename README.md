@@ -28,7 +28,7 @@ CDaily es un poco eso. Un feed reader minimalista que abres en una pestaña y ho
 ```bash
 cd cdaily
 python -m pip install -r requirements.txt
-python -m app.main
+python -m cdaily.main
 # abrir http://localhost:7890
 ```
 
@@ -66,8 +66,8 @@ Si usas Docker con un endpoint IA que vive en tu host, el `docker-compose.yml` y
 ### Lint y formato
 
 ```bash
-python -m black app tests
-python -m flake8 app tests
+python -m black cdaily tests
+python -m flake8 cdaily tests
 ```
 
 ### Tests
@@ -78,13 +78,13 @@ pytest tests/ -v
 
 ## Arquitectura
 
-- `app/main.py` — bootstrap mínimo de FastAPI
-- `app/routes/` — capa HTTP
-- `app/services/` — scraping, resúmenes, scan y caché de imágenes
-- `app/repositories/` — acceso a SQLite y queries
-- `app/database.py` — shim de compatibilidad para imports antiguos
-- `app/static/` — JS y CSS del frontend
-- `app/templates/` — HTML base
+- `cdaily/main.py` — bootstrap mínimo de FastAPI
+- `cdaily/routes/` — capa HTTP
+- `cdaily/services/` — scraping, resúmenes, scan y caché de imágenes
+- `cdaily/repositories/` — acceso a SQLite y queries
+- `cdaily/database.py` — shim de compatibilidad para imports antiguos
+- `cdaily/static/` — JS y CSS del frontend
+- `cdaily/templates/` — HTML base
 
 ## Agregar o quitar blogs
 

@@ -69,14 +69,14 @@ def client(monkeypatch, tmp_path):
     monkeypatch.setenv("CDAILY_DB_PATH", db_path)
 
     # Patch config.DB_PATH so that get_connection() sees our temp DB
-    import app.config as cfg_mod
+    import cdaily.config as cfg_mod
 
     monkeypatch.setattr(cfg_mod, "DB_PATH", Path(db_path))
 
-    # Need to ensure that app.repositories.bootstrap uses the patched DB_PATH.
+    # Need to ensure that cdaily.repositories.bootstrap uses the patched DB_PATH.
     # bootstrap imports DB_PATH at module load; but it uses a dynamic get from config now.
     # Still, import after patching.
-    from app.main import app
+    from cdaily.main import app
 
     with TestClient(app) as tc:
         yield tc
@@ -193,7 +193,7 @@ def test_api_scan_disabled(client, monkeypatch):
     async def mock_fail():
         return {"ok": 0, "error": "blogwatcher-cli not found in PATH"}
 
-    monkeypatch.setattr("app.routes.system.run_scan", mock_fail)
+    monkeypatch.setattr("cdaily.routes.system.run_scan", mock_fail)
     data = client.post("/api/scan").json()
     assert data["ok"] is False
     err = (data.get("error") or "").lower() + (data.get("stderr") or "").lower()
@@ -269,7 +269,7 @@ def test_api_settings_flow(client):
 
 
 def test_extract_og_image_resolves_relative_urls():
-    from app.services.article_images import extract_og_image
+    from cdaily.services.article_images import extract_og_image
 
     html = """
     <html>
@@ -305,7 +305,7 @@ def test_extract_og_image_resolves_relative_urls():
 
 
 def test_get_article_og_image_tuple_signature(client):
-    from app.repositories.articles import get_article_og_image, save_article_og_image
+    from cdaily.repositories.articles import get_article_og_image, save_article_og_image
     db = os.environ["CDAILY_DB_PATH"]
     _seed(db)
 
@@ -364,7 +364,7 @@ def test_get_blogs_seeded(client):
 
 
 def test_post_blog_success(client, monkeypatch):
-    import app.routes.blogs as blogs_route_module
+    import cdaily.routes.blogs as blogs_route_module
 
     async def mock_add_blog(*args, **kwargs):
         return {"ok": 1}
@@ -383,7 +383,7 @@ def test_post_blog_success(client, monkeypatch):
 
 
 def test_post_blog_error(client, monkeypatch):
-    import app.routes.blogs as blogs_route_module
+    import cdaily.routes.blogs as blogs_route_module
 
     async def mock_add_blog(*args, **kwargs):
         return {"ok": 0, "error": "Invalid feed"}
@@ -397,7 +397,7 @@ def test_post_blog_error(client, monkeypatch):
 
 
 def test_delete_blog_success(client, monkeypatch):
-    import app.routes.blogs as blogs_route_module
+    import cdaily.routes.blogs as blogs_route_module
 
     async def mock_remove_blog(*args, **kwargs):
         return {"ok": 1}

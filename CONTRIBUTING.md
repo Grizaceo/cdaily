@@ -10,7 +10,7 @@ cd cdaily
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 pytest tests/ -v
-python -m app.main
+python -m cdaily.main
 ```
 
 You need [blogwatcher-cli](https://github.com/) with a populated `~/.blogwatcher-cli/blogwatcher-cli.db` to run the app against real feeds. Tests do not require it.

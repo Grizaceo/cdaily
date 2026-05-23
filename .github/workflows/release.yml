@@ -1,0 +1,101 @@
+name: Release and Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish-pypi:
+    name: Build & Publish to PyPI
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write  # Required for Trusted Publishing / OIDC if configured
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install build dependencies
+        run: pip install build twine
+
+      - name: Build package wheels and sdist
+        run: python -m build
+
+      - name: Publish to PyPI
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          # Safe fallback to twine upload if secrets.PYPI_API_TOKEN is set
+          if [ -n "$TWINE_PASSWORD" ]; then
+            twine upload dist/*
+          else
+            echo "PYPI_API_TOKEN is not set. Skipping twine upload. Configure Trusted Publishing on PyPI for OIDC."
+          fi
+
+  publish-docker:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR (GitHub Container Registry)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/cdaily:${{ github.ref_name }}
+            ghcr.io/${{ github.repository_owner }}/cdaily:latest
+
+  github-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [publish-pypi, publish-docker]
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create GitHub Release with Auto Notes
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          body: |
+            ## CDaily ${{ github.ref_name }} 🌿
+            
+            ¡Primera versión estable de CDaily!
+            
+            ### Qué incluye
+            * Lector de feeds minimalista que lee directo de `blogwatcher-cli.db`
+            * Generador de resúmenes con Inteligencia Artificial
+            * Integración inmersiva nativa con el mapa imperial **RepoCiv**
+            
+            ### Instalación
+            ```bash
+            pip install cdaily
+            cdaily
+            ```
+            
+            O ejecuta con Docker:
+            ```bash
+            docker run -d -p 7890:7890 -v ~/.blogwatcher-cli:/root/.blogwatcher-cli ghcr.io/${{ github.repository_owner }}/cdaily:latest
+            ```

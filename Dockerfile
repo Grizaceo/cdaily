@@ -10,4 +10,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Run the application
-CMD ["python", "-m", "app.main"]
+CMD ["python", "-m", "cdaily.main"]
