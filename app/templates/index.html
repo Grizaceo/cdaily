@@ -6,7 +6,7 @@
     <title>CDaily 🌿</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=2">
 </head>
 <body>
 
@@ -25,6 +25,7 @@
         >
     </div>
     <div class="header-right">
+        <button class="btn-icon" id="sources-btn" title="Gestionar Fuentes">📰</button>
         <button class="btn-icon" id="settings-btn" title="Configuración de IA">⚙️</button>
         <button class="btn-icon" id="mark-all-btn" title="Marcar todos leídos">✓</button>
         <button class="btn-icon" id="refresh-btn" title="Forzar scan">↻</button>
@@ -139,9 +140,73 @@
     </div>
 </div>
 
+<!-- ── Sources Modal ──────────────────────────────────────────── -->
+<div class="modal-overlay" id="sources-modal" hidden>
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>Gestionar Fuentes de Noticias 🌿</h3>
+            <button class="btn-icon" id="sources-close-btn" title="Cerrar">✕</button>
+        </div>
+        <div id="sources-alert-container" class="settings-alert" hidden></div>
+        
+        <!-- Formulario para agregar -->
+        <form id="sources-form" class="settings-form">
+            <h4 class="form-section-title">Añadir Nueva Fuente</h4>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="source-name">Nombre de la fuente</label>
+                    <input type="text" id="source-name" name="name" required placeholder="Ej: TechCrunch">
+                </div>
+                <div class="form-group">
+                    <label for="source-url">URL del Sitio</label>
+                    <input type="text" id="source-url" name="url" required placeholder="Ej: https://techcrunch.com">
+                </div>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="source-feed-url">URL de Feed RSS (Opcional)</label>
+                    <input type="text" id="source-feed-url" name="feed_url" placeholder="Ej: https://techcrunch.com/feed/">
+                </div>
+                <div class="form-group">
+                    <label for="source-selector">Selector CSS de Scraping (Opcional)</label>
+                    <input type="text" id="source-selector" name="scrape_selector" placeholder="Ej: article h2 a">
+                </div>
+            </div>
+            
+            <div class="modal-actions">
+                <button type="submit" class="btn-primary" id="source-add-btn">Añadir Fuente</button>
+            </div>
+        </form>
+        
+        <hr class="modal-divider">
+        
+        <!-- Lista de fuentes registradas -->
+        <div class="sources-list-section">
+            <h4 class="form-section-title">Fuentes Registradas</h4>
+            <div class="sources-table-container">
+                <table class="sources-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Feed / URL</th>
+                            <th>Último Escaneo</th>
+                            <th style="width: 80px; text-align: center;">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sources-list-body">
+                        <!-- Filas inyectadas por JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 <!-- ── Toast Container ────────────────────────────────────────── -->
 <div class="toast-container" id="toast-container"></div>
 
-<script src="/static/js/app.js"></script>
+<script src="/static/js/app.js?v=2"></script>
 </body>
 </html>

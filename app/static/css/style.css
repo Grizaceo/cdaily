@@ -639,3 +639,108 @@ mark {
     color: #f87171;
 }
 
+/* ── Sources Modal ───────────────────────────────────────────────────────── */
+#sources-modal .modal-card {
+    max-width: 680px; /* Más ancho para que quepa la tabla cómodamente */
+}
+
+.modal-divider {
+    border: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+    margin: 8px 0;
+}
+
+.form-section-title {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--accent-ciencia);
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+.sources-list-section {
+    padding: 0 20px 20px 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.sources-table-container {
+    max-height: 250px;
+    overflow-y: auto;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.sources-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    text-align: left;
+}
+
+.sources-table th {
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-secondary);
+    padding: 8px 12px;
+    font-weight: 500;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.sources-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
+    vertical-align: middle;
+}
+
+.source-row {
+    transition: background-color 150ms ease;
+}
+
+.source-row:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.source-cell-name {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.source-cell-url a {
+    color: var(--accent-ciencia);
+    text-decoration: none;
+    transition: color 150ms ease;
+}
+
+.source-cell-url a:hover {
+    color: #34d399;
+    text-decoration: underline;
+}
+
+.source-cell-date {
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+}
+
+.source-cell-actions {
+    text-align: center;
+}
+
+.btn-delete-source {
+    opacity: 0.6;
+    transition: all 150ms ease;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.btn-delete-source:hover {
+    opacity: 1;
+    transform: scale(1.15);
+    filter: drop-shadow(0 0 5px rgba(239, 68, 68, 0.5));
+}

@@ -254,6 +254,134 @@ function bindEvents() {
         }
     });
 
+    // ── Sources Modal Binding & Logic ─────────────────────────────────
+    const sourcesBtn = document.getElementById("sources-btn");
+    const sourcesModal = document.getElementById("sources-modal");
+    const sourcesCloseBtn = document.getElementById("sources-close-btn");
+    const sourcesForm = document.getElementById("sources-form");
+    const sourcesListBody = document.getElementById("sources-list-body");
+    const sourcesAlertContainer = document.getElementById("sources-alert-container");
+
+    const showSourcesAlert = (message, type = "success") => {
+        sourcesAlertContainer.textContent = message;
+        sourcesAlertContainer.className = `settings-alert ${type}`;
+        sourcesAlertContainer.hidden = false;
+    };
+
+    const hideSourcesAlert = () => {
+        sourcesAlertContainer.hidden = true;
+        sourcesAlertContainer.textContent = "";
+    };
+
+    const formatDate = (dateStr) => {
+        if (!dateStr) return "Nunca";
+        try {
+            const date = new Date(dateStr);
+            return date.toLocaleString("es-CL", {
+                day: "2-digit",
+                month: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit"
+            });
+        } catch (e) {
+            return dateStr;
+        }
+    };
+
+    const loadAndRenderSources = async () => {
+        sourcesListBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Cargando fuentes...</td></tr>`;
+        try {
+            const blogs = await api("GET", "/api/blogs");
+            if (blogs.length === 0) {
+                sourcesListBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">No hay fuentes registradas.</td></tr>`;
+                return;
+            }
+
+            sourcesListBody.innerHTML = blogs.map(blog => {
+                const displayUrl = blog.feed_url || blog.url;
+                const truncatedUrl = displayUrl.length > 40 ? displayUrl.substring(0, 37) + "..." : displayUrl;
+                const lastScannedText = formatDate(blog.last_scanned);
+                
+                return `
+                    <tr class="source-row">
+                        <td class="source-cell-name"><strong>${blog.name}</strong></td>
+                        <td class="source-cell-url"><a href="${blog.url}" target="_blank" title="${displayUrl}">${truncatedUrl}</a></td>
+                        <td class="source-cell-date">${lastScannedText}</td>
+                        <td class="source-cell-actions">
+                            <button class="btn-icon btn-delete-source" data-id="${blog.id}" title="Eliminar Fuente">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            }).join("");
+        } catch (err) {
+            sourcesListBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--accent-humor);">Error al cargar fuentes: ${err.message}</td></tr>`;
+        }
+    };
+
+    sourcesBtn.addEventListener("click", () => {
+        hideSourcesAlert();
+        sourcesModal.hidden = false;
+        loadAndRenderSources();
+    });
+
+    sourcesCloseBtn.addEventListener("click", () => {
+        sourcesModal.hidden = true;
+    });
+
+    sourcesModal.addEventListener("click", (e) => {
+        if (e.target === sourcesModal) {
+            sourcesModal.hidden = true;
+        }
+    });
+
+    sourcesForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        hideSourcesAlert();
+        const addBtn = document.getElementById("source-add-btn");
+        const originalText = addBtn.textContent;
+        addBtn.textContent = "Añadiendo...";
+        addBtn.disabled = true;
+        try {
+            const payload = {
+                name: document.getElementById("source-name").value.trim(),
+                url: document.getElementById("source-url").value.trim(),
+                feed_url: document.getElementById("source-feed-url").value.trim() || null,
+                scrape_selector: document.getElementById("source-selector").value.trim() || null
+            };
+            const res = await api("POST", "/api/blogs", payload);
+            toast("Fuente agregada con éxito");
+            sourcesForm.reset();
+            await loadAndRenderSources();
+        } catch (err) {
+            showSourcesAlert(err.message || "Error al añadir la fuente", "error");
+        } finally {
+            addBtn.textContent = originalText;
+            addBtn.disabled = false;
+        }
+    });
+
+    sourcesListBody.addEventListener("click", async (e) => {
+        const btn = e.target.closest(".btn-delete-source");
+        if (!btn) return;
+        const blogId = btn.dataset.id;
+        if (!blogId) return;
+        
+        if (!confirm("¿Estás seguro de que deseas eliminar esta fuente de noticias?")) return;
+        
+        btn.disabled = true;
+        btn.textContent = "⏳";
+        try {
+            await api("DELETE", `/api/blogs/${blogId}`);
+            toast("Fuente eliminada con éxito");
+            await loadAndRenderSources();
+        } catch (err) {
+            showSourcesAlert(err.message || "Error al eliminar la fuente", "error");
+            btn.disabled = false;
+            btn.textContent = "🗑️";
+        }
+    });
+
+
     // Article card interactions (delegated)
     document.getElementById("articles-grid").addEventListener("click", async (e) => {
         const card = e.target.closest(".article-card");

@@ -15,6 +15,7 @@ from .config import CONFIG
 from .database import init_db
 from .rate_limiter import limiter
 from .routes.articles import router as articles_router
+from .routes.blogs import router as blogs_router
 from .routes.system import router as system_router
 
 logger = logging.getLogger(__name__)
@@ -117,6 +118,7 @@ async def check_csrf(request, call_next):
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 app.include_router(system_router)
 app.include_router(articles_router)
+app.include_router(blogs_router)
 
 
 if __name__ == "__main__":

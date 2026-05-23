@@ -71,3 +71,18 @@ class AISettingsIn(BaseModel):
     system_prompt: str
     max_content_chars: int
 
+
+class BlogIn(BaseModel):
+    name: str
+    url: str
+    feed_url: Optional[str] = None
+    scrape_selector: Optional[str] = None
+
+
+class BlogOut(BaseModel):
+    id: int
+    name: str
+    url: str
+    feed_url: Optional[str] = None
+    scrape_selector: Optional[str] = None
+    last_scanned: Optional[str] = None

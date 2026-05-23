@@ -24,7 +24,14 @@ def client(monkeypatch, tmp_path):
     # Create blogwatcher-cli shared schema in the temp DB
     conn = sqlite3.connect(db_path)
     conn.executescript("""
-        CREATE TABLE blogs (id INTEGER PRIMARY KEY, name TEXT NOT NULL, url TEXT NOT NULL, feed_url TEXT);
+        CREATE TABLE blogs (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            url TEXT NOT NULL,
+            feed_url TEXT,
+            scrape_selector TEXT,
+            last_scanned TIMESTAMP
+        );
         CREATE TABLE articles (
             id INTEGER PRIMARY KEY,
             blog_id INTEGER REFERENCES blogs(id),
@@ -339,6 +346,64 @@ def test_api_article_image_caching_behavior(client):
     assert data2["image_url"] is None
     assert data2["cached"] is True
 
+def test_get_blogs_empty(client):
+    res = client.get("/api/blogs")
+    assert res.status_code == 200
+    assert len(res.json()) == 0
 
 
+def test_get_blogs_seeded(client):
+    db = os.environ["CDAILY_DB_PATH"]
+    _seed(db)
+    res = client.get("/api/blogs")
+    assert res.status_code == 200
+    blogs = res.json()
+    assert len(blogs) == 2
+    assert blogs[0]["name"] == "Ars Technica"
+    assert blogs[1]["name"] == "News Chile"
 
+
+def test_post_blog_success(client, monkeypatch):
+    import app.routes.blogs as blogs_route_module
+
+    async def mock_add_blog(*args, **kwargs):
+        return {"ok": 1}
+
+    monkeypatch.setattr(blogs_route_module, "add_blog", mock_add_blog)
+
+    payload = {
+        "name": "New Blog",
+        "url": "https://newblog.com",
+        "feed_url": "https://newblog.com/feed",
+        "scrape_selector": "h1 a",
+    }
+    res = client.post("/api/blogs", json=payload)
+    assert res.status_code == 201
+    assert res.json() == {"ok": True, "message": "Blog added successfully"}
+
+
+def test_post_blog_error(client, monkeypatch):
+    import app.routes.blogs as blogs_route_module
+
+    async def mock_add_blog(*args, **kwargs):
+        return {"ok": 0, "error": "Invalid feed"}
+
+    monkeypatch.setattr(blogs_route_module, "add_blog", mock_add_blog)
+
+    payload = {"name": "New Blog", "url": "https://newblog.com"}
+    res = client.post("/api/blogs", json=payload)
+    assert res.status_code == 400
+    assert "Invalid feed" in res.json()["detail"]
+
+
+def test_delete_blog_success(client, monkeypatch):
+    import app.routes.blogs as blogs_route_module
+
+    async def mock_remove_blog(*args, **kwargs):
+        return {"ok": 1}
+
+    monkeypatch.setattr(blogs_route_module, "remove_blog", mock_remove_blog)
+
+    res = client.delete("/api/blogs/1")
+    assert res.status_code == 200
+    assert res.json() == {"ok": True, "message": "Blog removed successfully"}
