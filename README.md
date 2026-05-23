@@ -15,6 +15,7 @@ CDaily es un poco eso. Un feed reader minimalista que abres en una pestaña y ho
 - Guarda ratings 1–5 para reordenar el feed
 - Genera resúmenes IA bajo demanda
 - Extrae y cachea imágenes OG cuando existen
+- Expone un servidor **MCP** (Model Context Protocol) para que agentes (Claude Code, Cursor, Codex CLI) lean, busquen y curen el feed sin pasar por la UI
 
 ## Requisitos
 
@@ -97,6 +98,73 @@ blogwatcher-cli remove "Nombre" --yes
 ```
 
 Los cambios se reflejan en CDaily al siguiente refresh automático o manual.
+
+## MCP server (agent-native)
+
+CDaily incluye un servidor MCP que expone el feed como tools, resources y prompts. Agentes como **Claude Code**, **Cursor** o **Codex CLI** pueden leer y curar el feed por stdio, sin necesidad de que el FastAPI esté corriendo (el MCP accede al SQLite directamente vía la capa de repositorios).
+
+### Ejecutar
+
+```bash
+python -m cdaily.mcp_server
+# arranca en stdio, espera handshake del cliente MCP
+```
+
+### Registrar en Claude Code
+
+Añade en `~/.claude.json` (o el `mcpServers` del proyecto):
+
+```json
+{
+  "mcpServers": {
+    "cdaily": {
+      "command": "python",
+      "args": ["-m", "cdaily.mcp_server"],
+      "cwd": "/ruta/absoluta/a/cdaily"
+    }
+  }
+}
+```
+
+Variables opcionales: `CDAILY_DB_PATH` para apuntar a una DB alternativa.
+
+### Catálogo
+
+| Categoría | Tools |
+|---|---|
+| **Lectura** | `feed_read`, `feed_digest`, `feed_search`, `article_open` |
+| **Mutación** (sufijo `_apply`) | `article_mark_apply`, `article_rate_apply`, `article_summarize_apply`, `feed_clear_apply` |
+| **Fuentes** | `sources_list`, `sources_add_apply`, `sources_remove_apply` |
+| **Sistema** | `feed_scan_apply`, `feed_stats` |
+
+**Resources** (lectura pasiva, attach con `@`):
+- `cdaily://feed/unread` — snapshot JSON de no-leídos (top 50)
+- `cdaily://stats` — conteos por categoría
+- `cdaily://sources` — blogs configurados
+
+**Prompts** (workflows reutilizables):
+- `morning_triage` — digest matutino con top 3 a leer
+- `weekly_digest` — temas dominantes de la semana
+
+### Convenciones
+
+- Respuestas **slim por defecto** (`id, title, blog, published, starred, rating, category`); `verbose=true` añade url, summary, image, scores
+- Tools mutantes llevan `[MUTATES]` en docstring y sufijo `_apply` para que agentes distingan side-effects de un vistazo
+- Descripciones explican *cuándo* usar cada tool, no solo qué hace
+
+### Layout
+
+```
+cdaily/
+├── mcp_server.py          # entry point (FastMCP + stdio)
+└── mcp/
+    ├── tools.py           # 13 tools agent-native
+    ├── resources.py       # 3 resources
+    ├── prompts.py         # 2 workflow prompts
+    └── shaping.py         # slim/verbose payload shapers
+```
+
+---
 
 ## Open source
 
