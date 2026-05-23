@@ -3,7 +3,9 @@ name: Release and Publish
 on:
   push:
     tags:
-      - 'v*'
+      # Strict semver (3 or 4 components). Excludes moving tags like v0.1-latest.
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
   publish-pypi:
@@ -49,6 +51,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Lowercase repository owner
+        id: lc
+        env:
+          OWNER: ${{ github.repository_owner }}
+        run: echo "owner=${OWNER,,}" >> "$GITHUB_OUTPUT"
+
       - name: Log in to GHCR (GitHub Container Registry)
         uses: docker/login-action@v3
         with:
@@ -62,8 +70,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/cdaily:${{ github.ref_name }}
-            ghcr.io/${{ github.repository_owner }}/cdaily:latest
+            ghcr.io/${{ steps.lc.outputs.owner }}/cdaily:${{ github.ref_name }}
+            ghcr.io/${{ steps.lc.outputs.owner }}/cdaily:latest
 
   github-release:
     name: Create GitHub Release
@@ -97,5 +105,5 @@ jobs:
             
             O ejecuta con Docker:
             ```bash
-            docker run -d -p 7890:7890 -v ~/.blogwatcher-cli:/root/.blogwatcher-cli ghcr.io/${{ github.repository_owner }}/cdaily:latest
+            docker run -d -p 7890:7890 -v ~/.blogwatcher-cli:/root/.blogwatcher-cli ghcr.io/grizaceo/cdaily:latest
             ```
