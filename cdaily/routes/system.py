@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import httpx
 from fastapi import APIRouter, BackgroundTasks, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -97,7 +98,6 @@ async def api_test_settings(payload: AISettingsIn, request: Request):
         headers["HTTP-Referer"] = "https://github.com/Grizaceo/cdaily"
         headers["X-Title"] = "CDaily"
 
-
     # Simple completion request to test connection
     test_payload = {
         "model": model,
@@ -109,15 +109,14 @@ async def api_test_settings(payload: AISettingsIn, request: Request):
     }
 
     try:
-        import httpx
         async with httpx.AsyncClient(timeout=10.0) as client:
             response = await client.post(endpoint, json=test_payload, headers=headers)
             if response.status_code != 200:
                 return {
                     "ok": False,
-                    "error": f"Error del servidor de IA (Status {response.status_code}): {response.text[:200]}"
+                    "error": f"Error del servidor de IA (Status {response.status_code}): {response.text[:200]}",
                 }
-            
+
             data = response.json()
             choices = data.get("choices")
             if isinstance(choices, list) and choices:
@@ -127,9 +126,12 @@ async def api_test_settings(payload: AISettingsIn, request: Request):
                     if isinstance(message, dict):
                         content = message.get("content")
                         if content:
-                            return {"ok": True, "message": f"Conexión exitosa. La IA respondió: '{content.strip()}'"}
-            
-            return {"ok": True, "message": "Conexión exitosa, pero la respuesta no tenía el formato de chat esperado (choices.message.content)."}
+                            msg = f"Conexión exitosa. La IA respondió: '{content.strip()}'"
+                            return {"ok": True, "message": msg}
+
+            return {
+                "ok": True,
+                "message": "Conexión exitosa, pero respuesta sin formato chat esperado (choices.message.content).",
+            }
     except Exception as exc:
         return {"ok": False, "error": f"Error de conexión: {str(exc)}"}
-

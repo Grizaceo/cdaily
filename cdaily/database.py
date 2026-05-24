@@ -1,6 +1,7 @@
-"""Compatibility shim for older imports.
+"""Stable import facade for the cdaily data layer.
 
-Prefer importing from app.repositories.* directly.
+All application code imports from here; the underlying implementation
+lives in cdaily.repositories.* but this module is the public API.
 """
 
 from __future__ import annotations

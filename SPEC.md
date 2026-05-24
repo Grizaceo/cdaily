@@ -218,9 +218,25 @@ CREATE TABLE cdaily_starred (
     UNIQUE(article_id)
 );
 
-CREATE TABLE cdaily_settings (
-    key TEXT PRIMARY KEY,
-    value TEXT
+CREATE TABLE cdaily_summaries (
+    id INTEGER PRIMARY KEY,
+    article_id INTEGER REFERENCES articles(id) UNIQUE,
+    ai_summary TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE cdaily_article_images (
+    id INTEGER PRIMARY KEY,
+    article_id INTEGER REFERENCES articles(id) UNIQUE,
+    image_url TEXT,
+    fetched_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE cdaily_article_ratings (
+    id INTEGER PRIMARY KEY,
+    article_id INTEGER REFERENCES articles(id) UNIQUE,
+    rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+    rated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
@@ -255,7 +271,7 @@ CDaily NO escribe en las tablas de blogwatcher — solo lee. Propio estado en `c
 
 ### Archivo de configuración
 ```yaml
-# ~/.config/cdaily/config.yaml
+# config.yaml (raíz del repo)
 host: "0.0.0.0"
 port: 7890
 db_path: "~/.blogwatcher-cli/blogwatcher-cli.db"
@@ -323,14 +339,14 @@ log_level: "INFO"
 ## 9. Definition of Done para Handoff
 
 El repo está listo para implementación cuando:
-- [ ] `README.md` con setup completo y commands
-- [ ] `app/main.py` con FastAPI skeleton y todos los endpoints definidos
-- [ ] `app/database.py` con conexión a SQLite y queries
-- [ ] `app/templates/index.html` con estructura HTML semántica
-- [ ] `app/static/css/style.css` con todas las variables CSS
-- [ ] `app/static/js/app.js` con toda la lógica frontend
-- [ ] `config.yaml` con configuración
-- [ ] `scripts/scan.sh` script de cron
-- [ ] `requirements.txt` con dependencias
-- [ ] Tests básicos en `tests/`
-- [ ] Todo código autocontenido — ningún misterio para otro agente
+- [x] `README.md` con setup completo y commands
+- [x] `cdaily/main.py` — FastAPI bootstrap con middlewares (auth, CSRF, CSP)
+- [x] `cdaily/routes/` — articles, blogs, system routes
+- [x] `cdaily/repositories/` — articles, bootstrap, personalization, stats
+- [x] `cdaily/templates/index.html` con estructura HTML semántica
+- [x] `cdaily/static/css/style.css` con todas las variables CSS
+- [x] `cdaily/static/js/app.js` con toda la lógica frontend
+- [x] `config.yaml` con configuración (en raíz del repo)
+- [x] `requirements.txt` con dependencias
+- [x] Tests básicos en `tests/`
+- [x] Todo código autocontenido — ningún misterio para otro agente
