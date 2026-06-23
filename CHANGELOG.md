@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## [0.1.2.0] - 2026-06-22
+
+### Added
+- **blogwatch_mcp_server**: alternative MCP entrypoint wrapping `blogwatcher-cli` subprocess directly. 9 tools (4 read + 5 mutating with `_apply` suffix). Useful when blogwatcher-cli is installed but cdaily DB schema doesn't match. Registered as `cdaily-blogwatch-mcp` console script.
+
 ## [0.1.1.0] - 2026-05-23
 
 ### Fixed

@@ -33,6 +33,7 @@ dependencies = [
 [project.scripts]
 cdaily = "cdaily.main:main"
 cdaily-mcp = "cdaily.mcp_server:main"
+cdaily-blogwatch-mcp = "cdaily.blogwatch_mcp_server:main"
 
 [tool.hatch.version]
 source = "regex"
