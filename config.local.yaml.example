@@ -13,4 +13,5 @@
 #   endpoint: "http://localhost:12345/v1/chat/completions"
 #   model: "qwen2.5-7b-instruct-1m"
 #   max_content_chars: 12000
+#   preferred_language: "English"
 #   api_key: ""

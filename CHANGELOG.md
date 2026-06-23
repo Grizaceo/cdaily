@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## [0.1.1.0] - 2026-05-23
+
+### Fixed
+- **CI post-rename**: workflow references updated from `app` to `cdaily` package.
+- **Stale docstring**: `cdaily/database.py` now correctly references `cdaily.repositories`.
+
+### Changed
+- **MCP test coverage**: expanded from 2/13 to 11/13 tools tested end-to-end. Remaining 4 require external services (blogwatcher-cli, AI endpoint) and are documented skips.
+
+### RepoCiv integration
+- **Kiosk rest area**: clicking the kiosk tile now auto-discovers a rest area with 1.25× recovery bonus, closing the gap between visual placement and bridge logic.
+
 ## [0.1.0.0] - 2026-05-18
 
 First public open-source release.

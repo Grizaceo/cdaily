@@ -25,10 +25,20 @@ Tests use in-memory SQLite fixtures; no live blogwatcher-cli DB required.
 ```bash
 pip install -r requirements.txt
 python -m cdaily.main
-# http://127.0.0.1:7890
+# http://127.0.0.1:8000
 ```
 
 Config: tracked `config.yaml` + env overrides (`CDAILY_*`). Secrets only via `.env` / env vars (never commit).
+
+### WSL2 — acceso desde Windows
+
+`localhost:8000` no funciona desde el navegador de Windows aunque el servidor responda.
+Causa: Windows Firewall + portproxy bloquean HTTP. Tailscale enruta correctamente.
+
+**URL real desde Windows:** `http://100.123.206.92:8000/` (IP Tailscale de WSL2)
+
+La IP Tailscale es estable entre reinicios (a diferencia de la IP eth0 de WSL2 que cambia).
+Si Tailscale no está activo, alternativa: `http://172.28.246.75:8000` (IP eth0, cambia en cada reinicio de WSL).
 
 ## Skill routing
 

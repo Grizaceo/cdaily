@@ -200,10 +200,72 @@ def test_api_scan_disabled(client, monkeypatch):
     assert "not found" in err or "no such file" in err
 
 
+def test_api_scan_rejects_nonzero_returncode(client, monkeypatch):
+    db = os.environ["CDAILY_DB_PATH"]
+    _seed(db)
+
+    async def mock_failed_scan():
+        return {
+            "ok": 1,
+            "returncode": 1,
+            "stdout": "",
+            "stderr": "scan failed: malformed feed",
+        }
+
+    monkeypatch.setattr("cdaily.routes.system.run_scan", mock_failed_scan)
+    data = client.post("/api/scan").json()
+    assert data["ok"] is False
+    assert "scan failed" in (data.get("error") or "").lower()
+
+
+def test_api_scan_accepts_external_origin(client, monkeypatch):
+    db = os.environ["CDAILY_DB_PATH"]
+    _seed(db)
+
+    async def mock_success():
+        return {"ok": 1, "stdout": "", "stderr": "", "returncode": 0}
+
+    monkeypatch.setattr("cdaily.routes.system.run_scan", mock_success)
+
+    from cdaily.main import app
+
+    with TestClient(app, base_url="http://100.123.206.92:7890") as external_client:
+        data = external_client.post(
+            "/api/scan",
+            headers={
+                "origin": "http://100.123.206.92:7890",
+                "referer": "http://100.123.206.92:7890/",
+            },
+        ).json()
+
+    assert data["ok"] is True
+
+
 def test_api_article_image_no_url(client):
     db = os.environ["CDAILY_DB_PATH"]
     _seed(db)
     assert client.get("/api/articles/1/image").status_code == 200
+
+
+def test_api_translate_article(client, monkeypatch):
+    db = os.environ["CDAILY_DB_PATH"]
+    _seed(db)
+
+    import cdaily.config as cfg
+
+    cfg.CONFIG.setdefault("ai_preferences", {})
+    cfg.CONFIG["ai_preferences"]["preferred_language"] = "Spanish"
+
+    async def mock_translate(article_id, ai_prefs):
+        assert article_id == 1
+        assert ai_prefs["preferred_language"] == "Spanish"
+        return {"ok": True, "translation": "Texto traducido"}
+
+    monkeypatch.setattr("cdaily.routes.articles.translate_article", mock_translate)
+
+    res = client.post("/api/articles/1/translate")
+    assert res.status_code == 200
+    assert res.json() == {"ok": True, "translation": "Texto traducido"}
 
 
 def test_api_settings_flow(client):
@@ -220,7 +282,8 @@ def test_api_settings_flow(client):
         "auth_header_name": "",
         "model": "test_model",
         "system_prompt": "Test Prompt",
-        "max_content_chars": 15000
+        "max_content_chars": 15000,
+        "preferred_language": "French",
     }
     res = client.post("/api/settings", json=payload)
     assert res.status_code == 200
@@ -233,6 +296,7 @@ def test_api_settings_flow(client):
     assert data["enabled"] is True
     assert data["model"] == "test_model"
     assert data["max_content_chars"] == 15000
+    assert data["preferred_language"] == "French"
 
     # Test connection test endpoint (can be True or False depending on local server availability)
     res = client.post("/api/settings/test", json=payload)

@@ -72,10 +72,19 @@ function bindEvents() {
     // Refresh / force scan
     document.getElementById("refresh-btn").addEventListener("click", async () => {
         setRefreshIndicator(true);
-        await api("POST", "/api/scan");
-        await loadData();
-        setRefreshIndicator(false);
-        toast("Feed actualizado");
+        try {
+            const result = await api("POST", "/api/scan");
+            if (!result.ok) {
+                throw new Error(result.error || result.stderr || "Error en scan");
+            }
+            await loadData();
+            toast("Feed actualizado");
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "Error en scan";
+            toast(`Error en scan: ${message}`);
+        } finally {
+            setRefreshIndicator(false);
+        }
     });
 
     // Settings modal binding
@@ -167,6 +176,7 @@ function bindEvents() {
             document.getElementById("ai-model").value = config.model || "";
             document.getElementById("ai-prompt").value = config.system_prompt || "";
             document.getElementById("ai-max-chars").value = config.max_content_chars || 12000;
+            document.getElementById("ai-preferred-language").value = config.preferred_language || "English";
             authTypeSelect.value = config.auth_type || "none";
             document.getElementById("ai-auth-header-name").value = config.auth_header_name || "";
             
@@ -206,6 +216,7 @@ function bindEvents() {
             model: document.getElementById("ai-model").value.trim(),
             system_prompt: document.getElementById("ai-prompt").value.trim(),
             max_content_chars: parseInt(document.getElementById("ai-max-chars").value) || 12000,
+            preferred_language: document.getElementById("ai-preferred-language").value.trim() || "English",
             auth_type: authTypeSelect.value,
             auth_header_name: document.getElementById("ai-auth-header-name").value.trim()
         };
@@ -301,11 +312,11 @@ function bindEvents() {
                 const displayUrl = blog.feed_url || blog.url;
                 const truncatedUrl = displayUrl.length > 40 ? displayUrl.substring(0, 37) + "..." : displayUrl;
                 const lastScannedText = formatDate(blog.last_scanned);
-                
+
                 return `
                     <tr class="source-row">
-                        <td class="source-cell-name"><strong>${blog.name}</strong></td>
-                        <td class="source-cell-url"><a href="${blog.url}" target="_blank" title="${displayUrl}">${truncatedUrl}</a></td>
+                        <td class="source-cell-name"><strong>${escHtml(blog.name)}</strong></td>
+                        <td class="source-cell-url"><a href="${escHtml(blog.url)}" target="_blank" title="${escHtml(displayUrl)}">${escHtml(truncatedUrl)}</a></td>
                         <td class="source-cell-date">${lastScannedText}</td>
                         <td class="source-cell-actions">
                             <button class="btn-icon btn-delete-source" data-id="${blog.id}" title="Eliminar Fuente">🗑️</button>
@@ -432,6 +443,37 @@ function bindEvents() {
             } finally {
                 btn.classList.remove("spinning");
             }
+        } else if (e.target.closest(".btn-translate")) {
+            e.stopPropagation();
+            e.preventDefault();
+            const btn = e.target.closest(".btn-translate");
+            const translationContainer = card.querySelector(".ai-translation-container");
+
+            if (!translationContainer.hidden) {
+                translationContainer.hidden = true;
+                return;
+            }
+
+            btn.classList.add("spinning");
+            translationContainer.innerHTML = "<small>Traduciendo...</small>";
+            translationContainer.hidden = false;
+
+            try {
+                const res = await api("POST", `/api/articles/${id}/translate`);
+                if (res.ok) {
+                    translationContainer.innerHTML = escHtml(res.translation)
+                        .split("\n")
+                        .filter(l => l.trim())
+                        .map(l => `<p>${l}</p>`)
+                        .join("");
+                } else {
+                    translationContainer.innerHTML = `<small class="error-text">Error: ${escHtml(res.error)}</small>`;
+                }
+            } catch (err) {
+                translationContainer.innerHTML = `<small class="error-text">Error de red</small>`;
+            } finally {
+                btn.classList.remove("spinning");
+            }
         } else if (e.target.closest(".rating-star")) {
             e.stopPropagation();
             e.preventDefault();
@@ -529,6 +571,7 @@ function renderArticles() {
                         </span>
                         <div class="card-actions">
                             <button class="btn-icon btn-summarize" title="Resumir con IA">✨</button>
+                            <button class="btn-icon btn-translate" title="Traducir con IA">🌐</button>
                             <button class="btn-icon btn-star ${article.is_starred ? "active" : ""}" title="Para leer">★</button>
                             <button class="btn-icon btn-read" title="Marcar leído">✕</button>
                         </div>
@@ -538,6 +581,7 @@ function renderArticles() {
                     </a>
                     ${ratingHtml}
                     <div class="ai-summary-container" hidden></div>
+                    <div class="ai-translation-container" hidden></div>
                     ${categoriesHtml}
                 </div>
             </article>

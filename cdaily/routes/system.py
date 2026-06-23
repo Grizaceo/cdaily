@@ -36,16 +36,23 @@ def api_stats():
 @limiter.limit("5/minute")
 async def api_scan(background_tasks: BackgroundTasks, request: Request):
     result = await run_scan()
-    ok = bool(result.get("ok"))
+    returncode = result.get("returncode")
+    ok = bool(result.get("ok")) and (not isinstance(returncode, int) or returncode == 0)
     if not ok:
-        return {"ok": False, "error": result.get("error", "Unknown scan error")}
+        return {
+            "ok": False,
+            "error": result.get("error") or result.get("stderr") or "Unknown scan error",
+            "stdout": result.get("stdout", ""),
+            "stderr": result.get("stderr", ""),
+            "returncode": returncode,
+        }
 
     background_tasks.add_task(fetch_missing_images)
     return {
         "ok": True,
         "stdout": result.get("stdout", ""),
         "stderr": result.get("stderr", ""),
-        "returncode": result.get("returncode", 0),
+        "returncode": returncode,
     }
 
 

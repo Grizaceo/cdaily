@@ -6,10 +6,10 @@ from fastapi import APIRouter, HTTPException, Query, Request
 
 from ..config import CONFIG
 from ..database import get_articles, mark_all_read, mark_read, mark_unread, set_article_rating, toggle_star
-from ..models import ActionOut, ArticlesList, RatingIn, SummaryOut
+from ..models import ActionOut, ArticlesList, RatingIn, SummaryOut, TranslationOut
 from ..rate_limiter import limiter
 from ..services.article_images import fetch_article_image
-from ..services.article_summary import summarize_article
+from ..services.article_summary import summarize_article, translate_article
 
 router = APIRouter(prefix="/api/articles", tags=["articles"])
 
@@ -61,11 +61,23 @@ def api_toggle_star(article_id: int, request: Request):
     return {"ok": True, "starred": starred}
 
 
-@router.post("/{article_id}/summarize", response_model=SummaryOut)
+@router.post("/{article_id}/summarize", response_model=SummaryOut, response_model_exclude_none=True)
 @limiter.limit(_RATE_SLOW)
 async def api_summarize(article_id: int, request: Request):
     ai_prefs = CONFIG.get("ai_preferences", {})
     result = await summarize_article(article_id, ai_prefs)
+    if not result.get("ok"):
+        error = result.get("error", "Unknown error")
+        if "disabled" in error.lower():
+            raise HTTPException(status_code=400, detail=error)
+    return result
+
+
+@router.post("/{article_id}/translate", response_model=TranslationOut, response_model_exclude_none=True)
+@limiter.limit(_RATE_SLOW)
+async def api_translate(article_id: int, request: Request):
+    ai_prefs = CONFIG.get("ai_preferences", {})
+    result = await translate_article(article_id, ai_prefs)
     if not result.get("ok"):
         error = result.get("error", "Unknown error")
         if "disabled" in error.lower():

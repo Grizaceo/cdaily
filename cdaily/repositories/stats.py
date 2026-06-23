@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+from contextlib import closing
+
 from .bootstrap import get_connection
 from .personalization import get_blog_category_map
 
 
 def get_stats() -> dict:
     """Return unread counts total and per category."""
-    with get_connection() as conn:
+    with closing(get_connection()) as conn:
         cur = conn.cursor()
 
         cur.execute("SELECT COUNT(*) FROM articles WHERE is_read = 0")

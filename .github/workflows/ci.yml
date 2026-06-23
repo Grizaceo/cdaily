@@ -21,9 +21,9 @@ jobs:
           pip install -r requirements.txt
           pip install flake8 black
       - name: Lint with flake8
-        run: flake8 app tests
+        run: flake8 cdaily tests
       - name: Check formatting with black
-        run: black --check app tests
+        run: black --check cdaily tests
 
   test:
     runs-on: ubuntu-latest

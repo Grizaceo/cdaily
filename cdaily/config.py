@@ -86,6 +86,7 @@ def load_config(config_path: str | None = None) -> dict:
     env_api_key = os.environ.get("CDAILY_AI_API_KEY")
     if env_api_key:
         ai_prefs["api_key"] = env_api_key
+    ai_prefs.setdefault("preferred_language", "English")
 
     _validate_schema(raw)
     return raw
@@ -94,7 +95,7 @@ def load_config(config_path: str | None = None) -> dict:
 def save_ai_preferences(new_prefs: dict) -> None:
     """Updates ai_preferences in config.yaml and reloads CONFIG in-place."""
     config_path = os.environ.get("CDAILY_CONFIG", str(Path(__file__).parent.parent / "config.yaml"))
-    
+
     raw = {}
     if os.path.exists(config_path):
         with open(config_path, "r", encoding="utf-8") as f:
@@ -102,6 +103,8 @@ def save_ai_preferences(new_prefs: dict) -> None:
                 raw = yaml.safe_load(f) or {}
             except Exception:
                 raw = {}
+
+    preferred_language = str(new_prefs.get("preferred_language", "English")).strip() or "English"
 
     raw["ai_preferences"] = {
         "enabled": bool(new_prefs.get("enabled")),
@@ -112,6 +115,7 @@ def save_ai_preferences(new_prefs: dict) -> None:
         "model": str(new_prefs.get("model", "")).strip(),
         "system_prompt": str(new_prefs.get("system_prompt", "Summarize this.")).strip(),
         "max_content_chars": int(new_prefs.get("max_content_chars", 12000)),
+        "preferred_language": preferred_language,
     }
 
     with open(config_path, "w", encoding="utf-8") as f:

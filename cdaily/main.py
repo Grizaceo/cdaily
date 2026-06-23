@@ -10,6 +10,9 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import Response, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from .config import CONFIG
 from .database import init_db
@@ -32,8 +35,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="CDaily", description="Personal Daily Feed", lifespan=lifespan)
 
-# Attach limiter to app state for middleware injection
 app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 # CSP: basic defense-in-depth — restricts inline styles/scripts
 CSP = (
@@ -46,11 +50,19 @@ CSP = (
 
 ALLOWED_ORIGINS = frozenset(
     {
-        "http://127.0.0.1:7890",
-        "http://localhost:7890",
-        "http://host.docker.internal:7890",
+        f"http://127.0.0.1:{CONFIG['port']}",
+        f"http://localhost:{CONFIG['port']}",
+        f"http://host.docker.internal:{CONFIG['port']}",
     }
 )
+
+
+def _request_origin(request) -> str | None:
+    host = request.headers.get("host")
+    if not host:
+        return None
+    return f"{request.url.scheme}://{host}"
+
 
 # Optional auth token for production deployments.
 _AUTH_TOKEN = os.environ.get("CDAILY_API_TOKEN", "")
@@ -89,6 +101,7 @@ async def check_csrf(request, call_next):
     if request.method in ("POST", "PUT", "DELETE"):
         origin = request.headers.get("origin")
         referer = request.headers.get("referer")
+        current_origin = _request_origin(request)
 
         if not origin and not referer:
             response = await call_next(request)
@@ -96,14 +109,17 @@ async def check_csrf(request, call_next):
 
         allowed = False
         if origin:
-            if origin in ALLOWED_ORIGINS:
+            if origin in ALLOWED_ORIGINS or origin == current_origin:
                 allowed = True
 
         if not allowed and referer:
-            for ao in ALLOWED_ORIGINS:
-                if referer.startswith(ao):
-                    allowed = True
-                    break
+            if current_origin and referer.startswith(current_origin):
+                allowed = True
+            else:
+                for ao in ALLOWED_ORIGINS:
+                    if referer.startswith(ao):
+                        allowed = True
+                        break
 
         if not allowed:
             return JSONResponse(
@@ -127,7 +143,7 @@ def main() -> None:
     uvicorn.run(
         "cdaily.main:app",
         host=CONFIG["host"],
-        port=7890,
+        port=CONFIG["port"],
         reload=False,
     )
 

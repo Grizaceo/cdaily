@@ -25,6 +25,16 @@ async def run_scan() -> dict[str, int | str]:
                 pass
             return {"ok": 0, "error": "Scan timed out (>120s)"}
 
+        if returncode != 0:
+            error_message = stderr or stdout or f"Scan failed with return code {returncode}"
+            return {
+                "ok": 0,
+                "error": error_message,
+                "stdout": stdout,
+                "stderr": stderr,
+                "returncode": returncode,
+            }
+
         return {"ok": 1, "stdout": stdout, "stderr": stderr, "returncode": returncode}
     except FileNotFoundError:
         return {"ok": 0, "error": "blogwatcher-cli not found in PATH"}

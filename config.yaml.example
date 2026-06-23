@@ -11,6 +11,7 @@ ai_preferences:
   endpoint: "http://localhost:12345/v1/chat/completions"
   model: "qwen2.5-7b-instruct-1m"
   max_content_chars: 12000
+  preferred_language: "English"
   system_prompt: >
     Summarize the article in 3 very short bullet points.
     Focus on practical takeaways, key facts, and the main implication.

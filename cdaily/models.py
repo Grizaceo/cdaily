@@ -53,6 +53,12 @@ class SummaryOut(BaseModel):
     error: Optional[str] = None
 
 
+class TranslationOut(BaseModel):
+    ok: bool
+    translation: Optional[str] = None
+    error: Optional[str] = None
+
+
 class ScanOut(BaseModel):
     ok: bool
     stdout: str = ""
@@ -70,6 +76,7 @@ class AISettingsIn(BaseModel):
     model: str
     system_prompt: str
     max_content_chars: int
+    preferred_language: str = Field(default="English")
 
 
 class BlogIn(BaseModel):
