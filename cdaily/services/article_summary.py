@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -43,7 +44,12 @@ async def _fetch_article_text(url: str, article_id: int | None = None) -> tuple[
 
 
 async def _request_ai_completion(endpoint: str, payload: dict[str, Any], ai_prefs: dict[str, Any]) -> str:
-    """Send a request to the configured OpenAI-compatible endpoint."""
+    """Send a request to the configured OpenAI-compatible endpoint.
+
+    Retries transient failures (connection errors, timeouts, 5xx) with bounded
+    exponential backoff. Non-retryable failures (4xx client errors, invalid URL)
+    return immediately so the user gets a clear error rather than a long stall.
+    """
     # AI endpoint: validate URL too (comes from config, not user, but defense in depth)
     try:
         validate_url(endpoint, allow_private=True)
@@ -64,24 +70,49 @@ async def _request_ai_completion(endpoint: str, payload: dict[str, Any], ai_pref
         headers["HTTP-Referer"] = "https://github.com/Grizaceo/cdaily"
         headers["X-Title"] = "CDaily"
 
+    max_attempts = 3
+    base_delay = 1.0
+    last_exc: Exception | None = None
     async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.post(endpoint, json=payload, headers=headers)
-        if response.status_code != 200:
-            error_body = response.text
-            logger.error("AI Server Error (%s): body length=%s", response.status_code, len(error_body))
-            raise RuntimeError(f"AI Server Error {response.status_code}: {error_body}")
+        for attempt in range(1, max_attempts + 1):
+            try:
+                response = await client.post(endpoint, json=payload, headers=headers)
+            except (httpx.TransportError, httpx.TimeoutException) as exc:
+                # Transient: network down / timeout (e.g. local endpoint not up yet)
+                last_exc = exc
+                logger.warning("AI request attempt %s/%s failed (transport): %s", attempt, max_attempts, exc)
+                if attempt < max_attempts:
+                    await asyncio.sleep(base_delay * (2 ** (attempt - 1)))
+                continue
 
-        data = response.json()
-        result = extract_summary_text(data)
-        if not result:
-            logger.error(
-                "AI response has no text content (status=%s, body length=%s)",
-                response.status_code,
-                len(response.text),
-            )
-            raise RuntimeError("La IA respondió sin contenido de texto.")
+            if response.status_code >= 500:
+                # Transient server error -> retry
+                last_exc = RuntimeError(f"AI Server Error {response.status_code}")
+                logger.warning("AI request attempt %s/%s got 5xx (%s)", attempt, max_attempts, response.status_code)
+                if attempt < max_attempts:
+                    await asyncio.sleep(base_delay * (2 ** (attempt - 1)))
+                continue
 
-        return result
+            if response.status_code != 200:
+                error_body = response.text
+                logger.error("AI Server Error (%s): body length=%s", response.status_code, len(error_body))
+                raise RuntimeError(f"AI Server Error {response.status_code}: {error_body}")
+
+            data = response.json()
+            result = extract_summary_text(data)
+            if not result:
+                logger.error(
+                    "AI response has no text content (status=%s, body length=%s)",
+                    response.status_code,
+                    len(response.text),
+                )
+                raise RuntimeError("La IA respondió sin contenido de texto.")
+            return result
+
+    if last_exc is not None:
+        logger.error("AI request exhausted %s attempts", max_attempts)
+        raise RuntimeError(f"AI request failed after {max_attempts} attempts: {last_exc}") from last_exc
+    raise RuntimeError(f"AI request failed after {max_attempts} attempts")
 
 
 async def summarize_article(article_id: int, ai_prefs: dict[str, Any]) -> dict[str, Any]:

@@ -54,6 +54,7 @@ async def create_blog(payload: BlogIn, request: Request):
 @router.delete("/{blog_id}")
 @limiter.limit("10/minute")
 async def delete_blog(blog_id: int, request: Request):
+    # NOTE: @router.delete must stay OUTER so slowapi's per-route limiter is applied.
     """Remove a blog from tracking using blogwatcher-cli."""
     res = await remove_blog(blog_id=blog_id)
     if not res.get("ok"):

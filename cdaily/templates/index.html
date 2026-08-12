@@ -37,15 +37,37 @@
     <!-- Pills injected by JS -->
 </nav>
 
-<!-- ── Main Feed ────────────────────────────────────────────── -->
+<!-- ── Main Feed ────────────────────────────────────────────────────── -->
 <main class="feed-container" id="feed-container">
-    <div class="articles-grid" id="articles-grid">
+    <div class="articles-grid always-show-actions" id="articles-grid">
         <!-- Cards injected by JS -->
     </div>
+
+    <!-- Initial loading -->
+    <div class="loading-state" id="loading-state" hidden>
+        <div class="spinner" aria-hidden="true"></div>
+        <span>Cargando artículos…</span>
+    </div>
+
+    <!-- Error state (initial load failed) -->
+    <div class="error-state" id="error-state" hidden>
+        <p>🌿 No se pudo cargar el feed</p>
+        <small class="error-message">Error desconocido</small>
+        <button class="btn-secondary" id="retry-btn" type="button">Reintentar</button>
+    </div>
+
+    <!-- Empty state -->
     <div class="empty-state" id="empty-state" hidden>
         <p>Todo al día 🌿</p>
         <small>0 nuevos artículos</small>
     </div>
+
+    <!-- Infinite scroll sentinel + indicator -->
+    <div class="loading-more" id="loading-more" hidden>
+        <span class="spinner spinner-sm" aria-hidden="true"></span>
+        <span class="loading-text"></span>
+    </div>
+    <div id="scroll-sentinel" aria-hidden="true"></div>
 </main>
 
 <!-- ── Footer Status Bar ─────────────────────────────────────── -->

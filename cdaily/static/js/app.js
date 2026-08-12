@@ -7,6 +7,13 @@ const state = {
     articles: [],
     stats: {},
     lastRefresh: null,
+    // pagination
+    limit: 50,
+    offset: 0,
+    hasMore: false,
+    loadingMore: false,
+    feedError: null,
+    renderedCount: 0,
 };
 
 // ── Constants ───────────────────────────────────────────────────────────────
@@ -26,6 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
     bindEvents();
     loadData();
     startAutoRefresh();
+    initInfiniteScroll();
 });
 
 // ── Filter Pills ────────────────────────────────────────────────────────────
@@ -43,6 +51,12 @@ function initFilters() {
 
 // ── Event Bindings ──────────────────────────────────────────────────────────
 function bindEvents() {
+    // Retry button (initial load error)
+    document.getElementById("retry-btn").addEventListener("click", () => {
+        state.feedError = null;
+        loadData();
+    });
+
     // Category pills
     document.getElementById("filter-bar").addEventListener("click", (e) => {
         const pill = e.target.closest(".filter-pill");
@@ -403,14 +417,22 @@ function bindEvents() {
         if (e.target.closest(".btn-read")) {
             e.stopPropagation();
             e.preventDefault();
-            await api("POST", `/api/articles/${id}/read`);
-            card.classList.add("is-read");
-            updateUnreadCount(-1);
+            try {
+                await api("POST", `/api/articles/${id}/read`);
+                card.classList.add("is-read");
+                updateUnreadCount(-1);
+            } catch (err) {
+                toast("No se pudo marcar como leído");
+            }
         } else if (e.target.closest(".btn-star")) {
             e.stopPropagation();
             e.preventDefault();
-            const res = await api("POST", `/api/articles/${id}/star`);
-            card.classList.toggle("is-starred", res.starred);
+            try {
+                const res = await api("POST", `/api/articles/${id}/star`);
+                card.classList.toggle("is-starred", res.starred);
+            } catch (err) {
+                toast("No se pudo cambiar la estrella");
+            }
         } else if (e.target.closest(".btn-summarize")) {
             e.stopPropagation();
             e.preventDefault();
@@ -491,15 +513,35 @@ function bindEvents() {
             }
         } else if (e.target.closest(".article-link")) {
             // Mark as read when clicking the title link
-            await api("POST", `/api/articles/${id}/read`);
-            card.classList.add("is-read");
-            updateUnreadCount(-1);
+            try {
+                await api("POST", `/api/articles/${id}/read`);
+                card.classList.add("is-read");
+                updateUnreadCount(-1);
+            } catch (err) {
+                /* navigation proceeds regardless; only the optimistic state fails */
+            }
         }
     });
 }
 
+// ── Infinite scroll (lazy pagination) ───────────────────────────────────────
+function initInfiniteScroll() {
+    const sentinel = document.getElementById("scroll-sentinel");
+    if (!sentinel || !("IntersectionObserver" in window)) return;
+
+    const io = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+            if (entry.isIntersecting && state.hasMore && !state.loadingMore) {
+                loadArticles({ append: true });
+            }
+        }
+    }, { rootMargin: "400px 0px" });
+    io.observe(sentinel);
+}
+
 // ── Data Loading ────────────────────────────────────────────────────────────
 async function loadData() {
+    state.offset = 0;
     const [articlesRes, statsRes] = await Promise.all([
         loadArticles(),
         api("GET", "/api/stats"),
@@ -509,89 +551,159 @@ async function loadData() {
     renderStatusBar();
 }
 
-async function loadArticles() {
+async function loadArticles({ append = false } = {}) {
+    if (!append) {
+        state.offset = 0;
+    }
     const params = new URLSearchParams();
     if (state.activeCategory && state.activeCategory !== "starred") params.set("cat", state.activeCategory);
     if (state.query)            params.set("q", state.query);
     if (state.unreadOnly)       params.set("unread", "1");
     if (state.starredOnly || state.activeCategory === "starred") params.set("starred", "1");
+    params.set("limit", String(state.limit));
+    params.set("offset", String(state.offset));
 
-    const res = await api("GET", `/api/articles?${params}`);
-    state.articles = res.articles;
-    state.lastRefresh = new Date();
-    renderArticles();
+    if (append) {
+        state.loadingMore = true;
+        setLoadingMore(true);
+    } else {
+        setLoading(true);
+    }
+
+    try {
+        const res = await api("GET", `/api/articles?${params}`);
+        state.lastRefresh = new Date();
+        state.feedError = null;
+        const incoming = res.articles || [];
+        if (append) {
+            state.articles = state.articles.concat(incoming);
+        } else {
+            state.articles = incoming;
+        }
+        const fetched = res.count ?? incoming.length;
+        state.offset += fetched;
+        state.hasMore = fetched >= state.limit;
+        renderArticles({ append });
+    } catch (err) {
+        state.feedError = err.message || "Error al cargar artículos";
+        showFeedError(state.feedError);
+        if (!append) {
+            state.articles = [];
+            renderArticles({ append: false });
+        }
+    } finally {
+        if (append) {
+            state.loadingMore = false;
+            setLoadingMore(false);
+        } else {
+            setLoading(false);
+        }
+    }
 }
 
 // ── Rendering ─────────────────────────────────────────────────────────────
-function renderArticles() {
+function renderArticles({ append = false } = {}) {
     const grid = document.getElementById("articles-grid");
     const empty = document.getElementById("empty-state");
+    const loading = document.getElementById("loading-state");
+    const loadingMoreEl = document.getElementById("loading-more");
+    const errorEl = document.getElementById("error-state");
+
+    if (!append) {
+        grid.innerHTML = "";
+        state.renderedCount = 0;
+    }
+
+    if (state.feedError && state.articles.length === 0) {
+        empty.hidden = true;
+        loading.hidden = true;
+        errorEl.hidden = false;
+        return;
+    }
+    errorEl.hidden = true;
 
     if (state.articles.length === 0) {
-        grid.innerHTML = "";
         empty.hidden = false;
+        loading.hidden = true;
         return;
     }
     empty.hidden = true;
 
     const query = state.query.toLowerCase();
 
-    grid.innerHTML = state.articles.map(article => {
-        const isRead = article.is_read ? "is-read" : "";
-        const isStarred = article.is_starred ? "is-starred" : "";
-        const cssUrl = safeCssImageUrl(article.image_url);
-        const imgHtml = cssUrl
-            ? `<div class="card-image" style="background-image: ${cssUrl}"></div>`
-            : `<div class="card-image is-placeholder" data-id="${article.id}">
-                 <div class="placeholder-icon">🖼️</div>
-               </div>`;
-        const titleHtml = query
-            ? highlightMatches(escHtml(article.title), query)
-            : escHtml(article.title);
-        const categoriesHtml = Array.isArray(article.categories) && article.categories.length
-            ? `<div class="card-tags">${article.categories.slice(0, 4).map(tag => `<span class="card-tag">${escHtml(tag)}</span>`).join("")}</div>`
-            : "";
-        const ratingHtml = `
-            <div class="rating-control" data-rating="${article.user_rating ?? ""}">
-                ${renderRatingStarsHtml(article.user_rating)}
-            </div>
-        `;
-
-        return `
-            <article class="article-card ${isRead} ${isStarred}"
-                     data-id="${article.id}"
-                     data-rating="${article.user_rating ?? ""}">
-                ${imgHtml}
-                <div class="card-content">
-                    <div class="card-header">
-                        <span class="card-emoji">${article.emoji}</span>
-                        <span class="card-meta">
-                            <span class="card-blog">${escHtml(article.blog_name)}</span>
-                            <span class="card-date">${formatDate(article.published_date)}</span>
-                        </span>
-                        <div class="card-actions">
-                            <button class="btn-icon btn-summarize" title="Resumir con IA">✨</button>
-                            <button class="btn-icon btn-translate" title="Traducir con IA">🌐</button>
-                            <button class="btn-icon btn-star ${article.is_starred ? "active" : ""}" title="Para leer">★</button>
-                            <button class="btn-icon btn-read" title="Marcar leído">✕</button>
-                        </div>
-                    </div>
-                    <a class="article-link" href="${escHtml(article.url)}" target="_blank" rel="noopener">
-                        <h2 class="card-title">${titleHtml}</h2>
-                    </a>
-                    ${ratingHtml}
-                    <div class="ai-summary-container" hidden></div>
-                    <div class="ai-translation-container" hidden></div>
-                    ${categoriesHtml}
-                </div>
-            </article>
-        `;
-    }).join("");
+    let html;
+    if (append) {
+        const nextSlice = state.articles.slice(state.renderedCount);
+        html = nextSlice.map(a => buildCardHtml(a, query)).join("");
+        grid.insertAdjacentHTML("beforeend", html);
+    } else {
+        html = state.articles.map(a => buildCardHtml(a, query)).join("");
+        grid.innerHTML = html;
+    }
+    state.renderedCount = state.articles.length;
 
     // Trigger on-demand fetching for placeholders
     document.querySelectorAll(".card-image.is-placeholder").forEach(el => {
         fetchImageOnDemand(parseInt(el.dataset.id), el);
     });
+
+    // Toggle loading-more indicator
+    loadingMoreEl.hidden = !state.hasMore && !state.loadingMore;
+    loadingMoreEl.querySelector(".spinner-sm").hidden = !state.loadingMore;
+    loadingMoreEl.querySelector(".loading-text").textContent =
+        state.hasMore ? (state.loadingMore ? "Cargando más..." : "") : "";
+}
+
+function buildCardHtml(article, query) {
+    const isRead = article.is_read ? "is-read" : "";
+    const isStarred = article.is_starred ? "is-starred" : "";
+    const cssUrl = safeCssImageUrl(article.image_url);
+    const imgHtml = cssUrl
+        ? `<div class="card-image" style="background-image: ${cssUrl}"></div>`
+        : `<div class="card-image is-placeholder" data-id="${article.id}">
+             <div class="placeholder-icon">🖼️</div>
+           </div>`;
+    const titleHtml = query
+        ? highlightMatches(escHtml(article.title), query)
+        : escHtml(article.title);
+    const categoriesHtml = Array.isArray(article.categories) && article.categories.length
+        ? `<div class="card-tags">${article.categories.slice(0, 4).map(tag => `<span class="card-tag">${escHtml(tag)}</span>`).join("")}</div>`
+        : "";
+    const ratingHtml = `
+        <div class="rating-control" data-rating="${article.user_rating ?? ""}">
+            ${renderRatingStarsHtml(article.user_rating)}
+        </div>
+    `;
+
+    return `
+        <article class="article-card ${isRead} ${isStarred}"
+                 data-id="${article.id}"
+                 data-rating="${article.user_rating ?? ""}">
+            ${imgHtml}
+            <div class="card-content">
+                <div class="card-header">
+                    <span class="card-emoji" aria-hidden="true">${article.emoji}</span>
+                    <span class="card-meta">
+                        <span class="card-blog">${escHtml(article.blog_name)}</span>
+                        <span class="card-date">${formatDate(article.published_date)}</span>
+                    </span>
+                    <div class="card-actions">
+                        <button class="btn-icon btn-summarize" title="Resumir con IA" aria-label="Resumir con IA">✨</button>
+                        <button class="btn-icon btn-translate" title="Traducir con IA" aria-label="Traducir con IA">🌐</button>
+                        <button class="btn-icon btn-star ${article.is_starred ? "active" : ""}" title="Para leer" aria-label="Marcar para leer">★</button>
+                        <button class="btn-icon btn-read" title="Marcar leído" aria-label="Marcar leído">✕</button>
+                    </div>
+                </div>
+                <a class="article-link" href="${escHtml(article.url)}" target="_blank" rel="noopener">
+                    <h2 class="card-title">${titleHtml}</h2>
+                </a>
+                ${ratingHtml}
+                <div class="ai-summary-container" hidden></div>
+                <div class="ai-translation-container" hidden></div>
+                ${categoriesHtml}
+            </div>
+        </article>
+    `;
 }
 
 function renderRatingStarsHtml(rating) {
@@ -615,17 +727,51 @@ async function fetchImageOnDemand(id, el) {
         const res = await api("GET", `/api/articles/${id}/image`);
         const cssUrl = res.image_url ? safeCssImageUrl(res.image_url) : null;
         if (cssUrl) {
-            el.style.backgroundImage = cssUrl;
-            el.classList.remove("is-placeholder");
-            el.innerHTML = ""; // Clear placeholder icon
+            // Preload to detect broken images (og:image 404 / dead link)
+            const probe = new Image();
+            probe.onload = () => {
+                el.style.backgroundImage = cssUrl;
+                el.classList.remove("is-placeholder");
+                el.innerHTML = "";
+            };
+            probe.onerror = () => showPlaceholderFallback(el);
+            probe.src = res.image_url;
         } else {
-            // No image found, clear placeholder pulsing state and show low-opacity paper icon
-            el.classList.remove("is-placeholder");
-            el.innerHTML = `<div class="placeholder-icon" style="animation: none; opacity: 0.15;">🗞️</div>`;
+            showPlaceholderFallback(el);
         }
     } catch (err) {
         console.error("Failed to fetch image on demand", err);
+        showPlaceholderFallback(el);
     }
+}
+
+// Low-opacity static paper icon — no pulsing loop
+function showPlaceholderFallback(el) {
+    el.classList.remove("is-placeholder");
+    el.innerHTML = `<div class="placeholder-icon" style="animation: none; opacity: 0.15;">🗞️</div>`;
+}
+
+// ── Loading / Error UI helpers ─────────────────────────────────────────────
+function setLoading(active) {
+    const el = document.getElementById("loading-state");
+    if (el) el.hidden = !active;
+}
+
+function setLoadingMore(active) {
+    const el = document.getElementById("loading-more");
+    if (!el) return;
+    el.hidden = !state.hasMore && !active;
+    el.querySelector(".spinner-sm").hidden = !active;
+    el.querySelector(".loading-text").textContent =
+        state.hasMore ? (active ? "Cargando más..." : "") : "";
+}
+
+function showFeedError(message) {
+    const el = document.getElementById("error-state");
+    if (!el) return;
+    el.hidden = false;
+    const msg = el.querySelector(".error-message");
+    if (msg) msg.textContent = message || "Error al cargar el feed";
 }
 
 function renderFilters() {

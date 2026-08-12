@@ -382,6 +382,49 @@ body {
     to   { opacity: 1; transform: translateX(0) scale(1); }
 }
 
+/* ── Loading / Error / Skeleton states ──────────────────────────────────── */
+/* Always-visible card actions (touch / mobile where hover is unavailable) */
+.articles-grid.always-show-actions .card-actions { opacity: 1; }
+
+/* Elements toggled via the `hidden` attribute must beat `display:flex` rules above */
+.loading-state[hidden],
+.error-state[hidden],
+.loading-more[hidden] { display: none !important; }
+
+.loading-state,
+.error-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--text-secondary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+.loading-state span { font-size: 14px; color: var(--text-muted); }
+.error-state p { font-size: 18px; font-weight: 600; color: var(--text-primary); }
+.error-state .error-message { font-size: 13px; color: var(--accent-humor); max-width: 420px; word-break: break-word; }
+
+.spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid rgba(255, 255, 255, 0.12);
+    border-top-color: var(--accent-ciencia);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+}
+.spinner-sm { width: 18px; height: 18px; border-width: 2px; }
+
+.loading-more {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 24px 0 40px;
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
 /* ── Scrollbar ──────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar       { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -743,4 +786,35 @@ mark {
     opacity: 1;
     transform: scale(1.15);
     filter: drop-shadow(0 0 5px rgba(239, 68, 68, 0.5));
+}
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+    /* Allow header to wrap so search + controls stay reachable on small screens */
+    .header {
+        flex-wrap: wrap;
+        height: auto;
+        min-height: var(--header-h);
+        padding: 8px 12px;
+        gap: 8px;
+    }
+    .header-center { order: 3; flex: 1 1 100%; max-width: 100%; margin: 0; }
+    .header-left   { order: 1; flex: 1 1 auto; }
+    .header-right  { order: 2; flex: 0 0 auto; }
+
+    .filter-bar {
+        top: auto;
+        position: static;
+    }
+    /* Keep feed below the wrapping header */
+    .feed-container { padding-top: 16px; }
+
+    /* Single-column feed on phones */
+    .articles-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Comfortable tap targets */
+    .btn-icon { width: 30px; height: 30px; font-size: 15px; }
+    .filter-pill { padding: 7px 14px; font-size: 13px; }
 }

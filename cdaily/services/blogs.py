@@ -59,8 +59,34 @@ async def remove_blog(blog_id: int) -> dict[str, int | str]:
                 if not row:
                     return {"ok": 0, "error": f"Blog with ID {blog_id} not found in database"}
                 blog_name = row["name"]
+
+                # Delete in FK order inside one transaction.
+                # We enabled PRAGMA foreign_keys=ON in bootstrap; none of the
+                # relevant FKs cascade, so we must clear children explicitly:
+                #   1. cdaily_* rows reference articles(id)  -> delete first
+                #   2. articles rows reference blogs(id)     -> delete next
+                #   3. the blog row itself is removed by blogwatcher-cli (separate process)
+                with conn:
+                    cur.execute(
+                        "DELETE FROM cdaily_starred WHERE article_id IN (SELECT id FROM articles WHERE blog_id = ?)",
+                        (blog_id,),
+                    )
+                    cur.execute(
+                        "DELETE FROM cdaily_summaries WHERE article_id IN (SELECT id FROM articles WHERE blog_id = ?)",
+                        (blog_id,),
+                    )
+                    cur.execute(
+                        "DELETE FROM cdaily_article_images WHERE article_id IN (SELECT id FROM articles WHERE blog_id = ?)",
+                        (blog_id,),
+                    )
+                    cur.execute(
+                        "DELETE FROM cdaily_article_ratings WHERE article_id IN (SELECT id FROM articles WHERE blog_id = ?)",
+                        (blog_id,),
+                    )
+                    cur.execute("DELETE FROM articles WHERE blog_id = ?", (blog_id,))
+                    deleted_articles = cur.rowcount
         except Exception as db_err:
-            return {"ok": 0, "error": f"Failed to retrieve blog name from database: {str(db_err)}"}
+            return {"ok": 0, "error": f"Failed to delete blog data from database: {str(db_err)}"}
 
         # Invoke blogwatcher-cli remove <name> -y (non-interactive)
         proc = await asyncio.create_subprocess_exec(
@@ -86,6 +112,6 @@ async def remove_blog(blog_id: int) -> dict[str, int | str]:
         if returncode != 0:
             return {"ok": 0, "error": stderr.strip() or f"Process exited with {returncode}"}
 
-        return {"ok": 1, "stdout": stdout, "stderr": stderr, "returncode": returncode}
+        return {"ok": 1, "stdout": stdout, "stderr": stderr, "returncode": returncode, "deleted_articles": deleted_articles}
     except FileNotFoundError:
         return {"ok": 0, "error": "blogwatcher-cli not found in PATH"}

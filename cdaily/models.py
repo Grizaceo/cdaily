@@ -93,3 +93,17 @@ class BlogOut(BaseModel):
     feed_url: Optional[str] = None
     scrape_selector: Optional[str] = None
     last_scanned: Optional[str] = None
+
+
+# Rebuild all models to resolve forward references (Pydantic v2 requirement)
+ArticleOut.model_rebuild()
+ArticlesList.model_rebuild()
+StatsOut.model_rebuild()
+ActionOut.model_rebuild()
+RatingIn.model_rebuild()
+SummaryOut.model_rebuild()
+TranslationOut.model_rebuild()
+ScanOut.model_rebuild()
+AISettingsIn.model_rebuild()
+BlogIn.model_rebuild()
+BlogOut.model_rebuild()
