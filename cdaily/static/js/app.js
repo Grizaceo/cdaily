@@ -14,6 +14,8 @@ const state = {
     loadingMore: false,
     feedError: null,
     renderedCount: 0,
+    // monotonically increasing token: each new load invalidates in-flight requests
+    loadToken: 0,
 };
 
 // ── Constants ───────────────────────────────────────────────────────────────
@@ -552,6 +554,7 @@ async function loadData() {
 }
 
 async function loadArticles({ append = false } = {}) {
+    const myToken = ++state.loadToken;
     if (!append) {
         state.offset = 0;
     }
@@ -572,6 +575,8 @@ async function loadArticles({ append = false } = {}) {
 
     try {
         const res = await api("GET", `/api/articles?${params}`);
+        // Discard if a newer load (search / filter / refresh) superseded this one
+        if (myToken !== state.loadToken) return;
         state.lastRefresh = new Date();
         state.feedError = null;
         const incoming = res.articles || [];
@@ -585,6 +590,8 @@ async function loadArticles({ append = false } = {}) {
         state.hasMore = fetched >= state.limit;
         renderArticles({ append });
     } catch (err) {
+        // Discard stale errors so they don't clobber a newer load's UI state
+        if (myToken !== state.loadToken) return;
         state.feedError = err.message || "Error al cargar artículos";
         showFeedError(state.feedError);
         if (!append) {
@@ -592,11 +599,13 @@ async function loadArticles({ append = false } = {}) {
             renderArticles({ append: false });
         }
     } finally {
-        if (append) {
-            state.loadingMore = false;
-            setLoadingMore(false);
-        } else {
-            setLoading(false);
+        if (myToken === state.loadToken) {
+            if (append) {
+                state.loadingMore = false;
+                setLoadingMore(false);
+            } else {
+                setLoading(false);
+            }
         }
     }
 }

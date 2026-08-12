@@ -19,6 +19,7 @@ class ArticleOut(BaseModel):
     is_starred: bool
     blog_name: str
     category: str
+    categories: list[str] = Field(default_factory=list)
     emoji: str
     image_url: Optional[str] = None
     user_rating: Optional[int] = None
