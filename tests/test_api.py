@@ -471,3 +471,122 @@ def test_delete_blog_success(client, monkeypatch):
     res = client.delete("/api/blogs/1")
     assert res.status_code == 200
     assert res.json() == {"ok": True, "message": "Blog removed successfully"}
+
+
+# ── H1: GET /api/settings must not leak the cleartext api_key ────────────────
+
+
+def test_get_settings_masks_api_key(client, monkeypatch):
+    """GET /api/settings never returns the real key in cleartext."""
+    real_key = "sk-super-secret-value"
+    monkeypatch.setattr(
+        "cdaily.routes.system.CONFIG",
+        {"ai_preferences": {"enabled": True, "endpoint": "http://x", "api_key": real_key}},
+    )
+
+    res = client.get("/api/settings")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["api_key"] != real_key
+    assert data["api_key"] == "********"
+    assert data["has_api_key"] is True
+    assert real_key not in res.text
+
+
+def test_get_settings_no_key_has_api_key_false(client, monkeypatch):
+    monkeypatch.setattr(
+        "cdaily.routes.system.CONFIG",
+        {"ai_preferences": {"enabled": False, "endpoint": "", "api_key": ""}},
+    )
+    res = client.get("/api/settings")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["api_key"] == ""
+    assert data["has_api_key"] is False
+
+
+# ── H1: POST /api/settings & /api/settings/test require auth when configured ──
+
+
+def test_post_settings_requires_token_when_configured(client, monkeypatch):
+    """With CDAILY_API_TOKEN set, POST /api/settings without token -> 401."""
+    monkeypatch.setenv("CDAILY_API_TOKEN", "secret-token")
+    payload = {
+        "enabled": True,
+        "endpoint": "http://localhost:12345/v1/chat/completions",
+        "api_key": "new-key",
+        "auth_type": "bearer",
+        "model": "m",
+        "system_prompt": "Summarize this.",
+        "max_content_chars": 12000,
+    }
+    res = client.post("/api/settings", json=payload)
+    assert res.status_code == 401
+
+
+def test_post_settings_accepts_valid_token(client, monkeypatch):
+    """With CDAILY_API_TOKEN set, POST /api/settings with token -> 200."""
+    monkeypatch.setenv("CDAILY_API_TOKEN", "secret-token")
+    payload = {
+        "enabled": True,
+        "endpoint": "http://localhost:12345/v1/chat/completions",
+        "api_key": "new-key",
+        "auth_type": "bearer",
+        "model": "m",
+        "system_prompt": "Summarize this.",
+        "max_content_chars": 12000,
+    }
+    res = client.post(
+        "/api/settings",
+        json=payload,
+        headers={"Authorization": "Bearer secret-token"},
+    )
+    assert res.status_code == 200
+    assert res.json()["ok"] is True
+
+
+def test_post_settings_test_requires_token_when_configured(client, monkeypatch):
+    """With CDAILY_API_TOKEN set, POST /api/settings/test without token -> 401."""
+    monkeypatch.setenv("CDAILY_API_TOKEN", "secret-token")
+    payload = {
+        "enabled": True,
+        "endpoint": "http://localhost:12345/v1/chat/completions",
+        "api_key": "x",
+        "auth_type": "bearer",
+        "model": "m",
+        "system_prompt": "Summarize this.",
+        "max_content_chars": 12000,
+    }
+    res = client.post("/api/settings/test", json=payload)
+    assert res.status_code == 401
+
+
+def test_post_settings_preserves_existing_key_on_mask_roundtrip(monkeypatch):
+    """When the client echoes the mask placeholder back, the stored key is kept."""
+    import cdaily.config as cfg_mod
+    import cdaily.routes.system as system_route
+
+    real_key = "sk-do-not-overwrite"
+    # Simulate a config that already holds a real key.
+    stored = {
+        "ai_preferences": {
+            "enabled": True,
+            "endpoint": "http://localhost:12345/v1/chat/completions",
+            "api_key": real_key,
+            "auth_type": "bearer",
+            "model": "m",
+            "system_prompt": "Summarize this.",
+            "max_content_chars": 12000,
+        }
+    }
+    monkeypatch.setattr(system_route, "CONFIG", stored)
+    monkeypatch.setattr(cfg_mod, "CONFIG", stored)
+
+    # /api/settings GET returns the mask, not the real key.
+    res = system_route.api_get_settings()
+    assert res["api_key"] == "********"
+    assert res["has_api_key"] is True
+
+    # Save with the mask echoed back -> real key preserved (not overwritten).
+    resolved = system_route._resolve_api_key("********")
+    assert resolved == real_key

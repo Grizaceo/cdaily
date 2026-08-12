@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from typing import Any
 
 import httpx
@@ -15,14 +16,62 @@ from ..validate_url import validate_url
 
 logger = logging.getLogger(__name__)
 
+# Patterns that commonly appear in provider error bodies when a credential is the
+# problem (e.g. "Invalid API key: sk-..." or "token abc123"). Matching raw values are
+# redacted before the body is ever surfaced to the client.
+_SECRET_RE = re.compile(
+    r"(?i)"
+    r"(sk-[A-Za-z0-9_\-]{6,})"
+    r"|(api[_-]?key['\"]?\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{8,})"
+    r"|(token['\"]?\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{8,})"
+    r"|(Bearer\s+[A-Za-z0-9_\-\.]{8,})"
+    r"|(AKIA[0-9A-Z]{12,})"
+    r"|([A-Za-z0-9_\-]{20,}\.[A-Za-z0-9_\-]{20,})"  # JWT-like / dotted secrets
+)
+_ERROR_BODY_MAX_CHARS = 200
+
+
+def _redact_error_body(body: str) -> str:
+    """Truncate and redact an AI provider error body before surfacing it to the client.
+
+    Provider 4xx responses sometimes echo the API key / token back in the body (e.g. a
+    401 "Invalid API key: sk-..."). We cap length and mask credential-shaped substrings
+    so secrets never propagate to the CDaily client.
+    """
+    if not body:
+        return body
+    redacted = _SECRET_RE.sub("[REDACTED]", body)
+    if len(redacted) > _ERROR_BODY_MAX_CHARS:
+        redacted = redacted[:_ERROR_BODY_MAX_CHARS] + "... [truncated]"
+    return redacted
+
 
 async def _fetch_article_text(url: str, article_id: int | None = None) -> tuple[str, str | None]:
-    """Fetch and extract readable text from an article URL."""
+    """Fetch and extract readable text from an article URL.
+
+    SSRF hardening (S3): the initial URL is validated by the caller, but every
+    redirect hop must also be re-validated so a public URL cannot 301/302 to an
+    internal/cloud-metadata address. We disable httpx auto-follow and walk the
+    redirect chain ourselves, calling validate_url() on each destination host.
+    """
     og_image = None
     try:
-        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
-            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-            resp = await client.get(url, headers=headers)
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        # follow_redirects=False so we control and re-validate each hop.
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=False) as client:
+            current_url = url
+            resp = None
+            # Bound the number of redirects to avoid infinite loops.
+            for _ in range(10):
+                resp = await client.get(current_url, headers=headers)
+                if resp.is_redirect and "location" in resp.headers:
+                    # Re-validate the next hop's host (SSRF guard per redirect).
+                    validate_url(resp.headers["location"])
+                    current_url = resp.headers["location"]
+                    continue
+                break
+            if resp is None:
+                raise RuntimeError("No response received while fetching article.")
             resp.raise_for_status()
             html_content = resp.text
 
@@ -94,7 +143,7 @@ async def _request_ai_completion(endpoint: str, payload: dict[str, Any], ai_pref
                 continue
 
             if response.status_code != 200:
-                error_body = response.text
+                error_body = _redact_error_body(response.text)
                 logger.error("AI Server Error (%s): body length=%s", response.status_code, len(error_body))
                 raise RuntimeError(f"AI Server Error {response.status_code}: {error_body}")
 

@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import httpx
-from fastapi import APIRouter, BackgroundTasks, Request
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from ..config import CONFIG, save_ai_preferences
+
+# Placeholder returned by GET /api/settings instead of the cleartext key.
+# The frontend sends it back on save to signal "unchanged" (keep existing key).
+API_KEY_MASK = "********"
 from ..database import get_stats
 from ..models import AISettingsIn
 from ..rate_limiter import limiter
@@ -58,21 +63,71 @@ async def api_scan(background_tasks: BackgroundTasks, request: Request):
 
 @router.get("/api/settings")
 def api_get_settings():
-    """Retrieve current AI preferences settings."""
-    return CONFIG.get("ai_preferences", {})
+    """Retrieve current AI preferences settings.
+
+    H1 fix: never expose api_key in cleartext. Return a mask placeholder plus a
+    boolean flag so the client knows a key is configured without leaking it.
+    """
+    prefs = CONFIG.get("ai_preferences", {})
+    public = dict(prefs)
+    raw_key = (public.get("api_key") or "").strip()
+    if raw_key:
+        public["api_key"] = API_KEY_MASK
+        public["has_api_key"] = True
+    else:
+        public["api_key"] = ""
+        public["has_api_key"] = False
+    return public
+
+
+def _settings_auth_required() -> bool:
+    """Auth is required only when CDAILY_API_TOKEN is configured (production)."""
+    return bool(os.environ.get("CDAILY_API_TOKEN", "").strip())
+
+
+def _require_settings_auth(request: Request) -> None:
+    """Route-level defense-in-depth for write endpoints.
+
+    Mirrors the optional require_auth middleware in main.py: when CDAILY_API_TOKEN
+    is set, the client must send `Authorization: Bearer <CDAILY_API_TOKEN>`. When no
+    token is configured (default dev), the endpoints stay open.
+    """
+    if not _settings_auth_required():
+        return
+    auth = request.headers.get("Authorization", "")
+    expected = f"Bearer {os.environ.get('CDAILY_API_TOKEN', '').strip()}"
+    if auth != expected:
+        raise HTTPException(
+            status_code=401,
+            detail="Unauthorized — provide Authorization: Bearer <CDAILY_API_TOKEN>",
+        )
+
+
+def _resolve_api_key(incoming: str | None) -> str:
+    """If the client echoed the mask placeholder back, keep the stored key.
+
+    This lets the settings UI re-save without forcing the user to retype the key,
+    while still allowing an explicit empty string to clear it and a new value to replace it.
+    """
+    if incoming == API_KEY_MASK:
+        return (CONFIG.get("ai_preferences", {}).get("api_key") or "").strip()
+    return (incoming or "").strip()
 
 
 @router.post("/api/settings")
 @limiter.limit("10/minute")
 def api_save_settings(payload: AISettingsIn, request: Request):
     """Save AI preferences settings to config.yaml and reload CONFIG."""
+    _require_settings_auth(request)
     try:
         # Validate endpoint URL
         validate_url(payload.endpoint, allow_private=True)
     except ValueError as e:
         return {"ok": False, "error": f"Invalid endpoint: {str(e)}"}
 
-    save_ai_preferences(payload.model_dump())
+    prefs = payload.model_dump()
+    prefs["api_key"] = _resolve_api_key(payload.api_key)
+    save_ai_preferences(prefs)
     return {"ok": True}
 
 
@@ -80,9 +135,10 @@ def api_save_settings(payload: AISettingsIn, request: Request):
 @limiter.limit("10/minute")
 async def api_test_settings(payload: AISettingsIn, request: Request):
     """Test AI endpoint connection with the supplied parameters."""
+    _require_settings_auth(request)
     endpoint = payload.endpoint
     auth_type = payload.auth_type
-    api_key = payload.api_key
+    api_key = _resolve_api_key(payload.api_key)
     auth_header_name = payload.auth_header_name
     model = payload.model
 
