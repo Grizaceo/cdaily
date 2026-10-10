@@ -6,10 +6,14 @@ refresh_interval_seconds: 60
 log_level: "INFO"
 
 # AI summarization (optional)
+# The API key for a local LLM server (e.g. llama-server) must NOT live here in a
+# public repo. Provide it via the CDAILY_AI_API_KEY environment variable
+# (see the cdaily.service Environment= line). Leave this blank in version control.
 ai_preferences:
   enabled: true
-  endpoint: "http://localhost:12345/v1/chat/completions"
-  model: "qwen2.5-7b-instruct-1m"
+  endpoint: "http://127.0.0.1:8081/v1/chat/completions"
+  model: "Ornith-1.5-9B-OBLITERATED-Q4_K_M"
+  api_key: ""
   max_content_chars: 12000
   preferred_language: "English"
   system_prompt: >

@@ -12,7 +12,16 @@ from bs4 import BeautifulSoup
 
 from ..database import get_article_url_and_summary, save_ai_summary, save_article_og_image
 from .article_images import extract_og_image
+from .google_news_resolver import is_google_news_url, resolve_google_news_url
 from ..validate_url import validate_url
+
+
+class _ArticleBlocked(RuntimeError):
+    """Raised when a publisher's anti-bot protection blocks the fetch (403/429).
+
+    Distinct from transient/transport errors: retrying will not help, so the
+    caller should fail fast with a clear message instead of burning attempts.
+    """
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +92,15 @@ async def _fetch_article_text(url: str, article_id: int | None = None) -> tuple[
             for tag in soup(["script", "style", "nav", "header", "footer", "aside"]):
                 tag.decompose()
             content = soup.get_text(separator="\n", strip=True)
+    except httpx.HTTPStatusError as exc:
+        # Anti-bot walls (403 Forbidden) and rate limits (429) are not
+        # transient — fail fast with a clear message instead of a generic error.
+        if exc.response.status_code in (403, 429):
+            raise _ArticleBlocked(
+                f"Publisher blocked the fetch (HTTP {exc.response.status_code}). "
+                "The site uses anti-bot protection that we do not bypass."
+            ) from exc
+        raise RuntimeError(f"Failed to fetch article: {exc}") from exc
     except Exception as exc:
         raise RuntimeError(f"Failed to fetch article: {exc}") from exc
 
@@ -122,7 +140,9 @@ async def _request_ai_completion(endpoint: str, payload: dict[str, Any], ai_pref
     max_attempts = 3
     base_delay = 1.0
     last_exc: Exception | None = None
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    # Local LLMs (llama.cpp, LM Studio) can take 40-90s to generate a summary
+    # for a long article; 30s caused spurious ReadTimeouts on healthy endpoints.
+    async with httpx.AsyncClient(timeout=180.0) as client:
         for attempt in range(1, max_attempts + 1):
             try:
                 response = await client.post(endpoint, json=payload, headers=headers)
@@ -175,6 +195,21 @@ async def summarize_article(article_id: int, ai_prefs: dict[str, Any]) -> dict[s
     if not url:
         return {"ok": False, "error": "Article has no URL to summarize."}
 
+    # Google News wraps the real article in an opaque redirect. Resolve it to
+    # the publisher URL first, otherwise we'd fetch Google's interstitial.
+    if is_google_news_url(url):
+        async with httpx.AsyncClient(
+            timeout=15.0,
+            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"},
+        ) as gn_client:
+            resolved = await resolve_google_news_url(gn_client, url)
+        if resolved:
+            logger.info("Resolved Google News URL for article %s -> %s", article_id, resolved[:80])
+            url = resolved
+        else:
+            return {"ok": False, "error": "Could not resolve the Google News redirect to the original article."}
+
     try:
         validate_url(url)
     except ValueError as e:
@@ -182,6 +217,8 @@ async def summarize_article(article_id: int, ai_prefs: dict[str, Any]) -> dict[s
 
     try:
         content, _ = await _fetch_article_text(url, article_id)
+    except _ArticleBlocked as exc:
+        return {"ok": False, "error": str(exc)}
     except RuntimeError as exc:
         return {"ok": False, "error": str(exc)}
 
