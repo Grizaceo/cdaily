@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "id": "davi.cdaily",
+  "name": "CDaily News",
+  "version": "1.0.0",
+  "author": "DAVI",
+  "license": "MIT",
+  "description": "Minimalist news feed reader widget - unread count + mini-app dropdown with previews, categories and actions",
+  "kinds": ["bar-widget"],
+  "activation": "on-demand",
+  "entryPoints": {
+    "barWidget": "Widget.qml"
+  }
+}
