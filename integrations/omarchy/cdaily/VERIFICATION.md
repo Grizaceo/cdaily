@@ -27,6 +27,17 @@ Backup anterior a los cambios: `Widget.qml.bak.20261010-212604`.
 - Suite backend: **118 passed, 4 skipped**, 13 warnings de deprecación de slowapi, exit 0.
 - Logs finales: sin errores atribuibles a `plugins/cdaily/`.
 
+## Redimensionamiento con mouse
+
+- Añadidos ocho tiradores limitados a los bordes y esquinas; coordenadas de arrastre relativas a la superficie fija del panel para evitar saltos.
+- Preferencias de tamaño por monitor mediante FileView con escritura atómica; límites de pantalla y restauración a 640 × 720.
+- QtTest sobre el plugin instalado: eventos mousePress/mouseMove/mouseRelease ampliaron a 790 × 820 y redujeron al mínimo de ancho 480.
+- Cierre/reapertura y recreación del Loader conservaron 480 × 820.
+- Rueda sobre ListView tras reducir: contentY=216, scroll operativo.
+- Harness final terminó con exit 0. El primer harness usó Qt.quit dentro del bucle anidado de QtTest y abortó al finalizar; reparado usando un Timer externo, sin cambios al plugin por ese fallo del test.
+- Versión final cargada en barra mediante reinicio soportado y summon con respuesta ok. Cristóbal confirmó funcionamiento con su mouse.
+- Prueba automatizada en `ACTIVE/cdaily-bar-debug/resize-test/shell.qml` (local, no empaquetada).
+
 ## Límites y observaciones
 
 - Apertura real probada mediante `omarchy-shell shell summon` / `hide`; la herramienta de escritorio no pudo obtener el surface de la barra para un clic físico automatizado.

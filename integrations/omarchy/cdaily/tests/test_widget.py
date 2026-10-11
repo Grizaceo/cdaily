@@ -41,6 +41,26 @@ class WidgetTests(unittest.TestCase):
         self.assertIn('function(message)', summary)
         self.assertIn('container.busy = false', summary.split('function(message)', 1)[1])
 
+class ResizeTests(unittest.TestCase):
+    def test_eight_border_handles_use_fixed_surface_coordinates(self):
+        qml = (PLUGIN / "Widget.qml").read_text()
+        self.assertIn('model: ["l", "r", "t", "b", "lt", "rt", "lb", "rb"]', qml)
+        self.assertIn("mapToItem(panel.contentItem, mouse.x, mouse.y)", qml)
+        self.assertIn("preventStealing: true", qml)
+
+    def test_size_is_bounded_persisted_and_resettable(self):
+        qml = (PLUGIN / "Widget.qml").read_text()
+        self.assertIn("atomicWrites: true", qml)
+        self.assertIn("encodeURIComponent(root.anchorScreen.name)", qml)
+        self.assertIn("Math.min(480, maxCardW)", qml)
+        self.assertIn("Math.min(300, maxCardH)", qml)
+        self.assertIn("onDoubleClicked: root.resetSize()", qml)
+
+    def test_content_reflows_with_panel_dimensions(self):
+        qml = (PLUGIN / "Widget.qml").read_text()
+        self.assertIn("Flow {", qml)
+        self.assertIn("root.cardH - contentColumn.y - y - 16", qml)
+
 class ThumbnailTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

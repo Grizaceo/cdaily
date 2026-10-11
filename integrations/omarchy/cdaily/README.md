@@ -18,6 +18,15 @@ Mantén la configuración de la barra que habilita `davi.cdaily`. No modificar
 El worker guarda miniaturas en `$XDG_CACHE_HOME/cdaily-thumbnails` (por defecto
 `~/.cache/cdaily-thumbnails`); no necesita base de datos, credenciales ni daemon.
 
+## Tamaño con el mouse
+
+- Arrastra cualquiera de los cuatro bordes o cuatro esquinas.
+- El tamaño se guarda por monitor en `~/.config/omarchy/cdaily-size-<monitor>.json`.
+- Mínimo 480 × 300, limitado al espacio disponible sobre la barra.
+- Las categorías se distribuyen en filas al reducir el ancho; la lista conserva el scroll.
+- Botón ↺ en cabecera o doble clic en un borde: restaurar 640 × 720.
+- Al reabrir, el panel vuelve junto a su icono y conserva el tamaño.
+
 ## Pruebas
 
 ```bash

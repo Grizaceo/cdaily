@@ -239,6 +239,7 @@ Item {
   // Omarchy's ModuleSlot owns pointer gestures and distinguishes drag from click.
   // Expose its click contract so this widget is reorderable like built-ins.
   function open() {
+    root.resizedX = -1; root.resizedY = -1
     root.opened = true
     root.refresh()
     root.fetchArticles()
@@ -271,8 +272,61 @@ Item {
   readonly property real barH: btnWindow ? btnWindow.height : 38
   readonly property real gap: 8
 
-  readonly property int cardW: 640
-  readonly property int cardH: 720
+  property real preferredW: 640
+  property real preferredH: 720
+  readonly property real maxCardW: Math.max(1, screenW - 2 * gap)
+  readonly property real maxCardH: Math.max(1, screenH - barH - 2 * gap)
+  readonly property real minCardW: Math.min(480, maxCardW)
+  readonly property real minCardH: Math.min(300, maxCardH)
+  readonly property real cardW: Math.max(minCardW, Math.min(preferredW, maxCardW))
+  readonly property real cardH: Math.max(minCardH, Math.min(preferredH, maxCardH))
+  property real resizedX: -1
+  property real resizedY: -1
+  property var resizeStart: null
+  property bool geometryLoaded: false
+  FileView {
+    id: geometryFile
+    path: root.anchorScreen ? Quickshell.env("HOME") + "/.config/omarchy/cdaily-size-" + encodeURIComponent(root.anchorScreen.name) + ".json" : ""
+    atomicWrites: true
+    watchChanges: false
+    printErrors: false
+    onLoaded: {
+      if (root.geometryLoaded) return
+      root.geometryLoaded = true
+      try {
+        var d = JSON.parse(text())
+        if (typeof d.width === "number" && isFinite(d.width) && d.width > 0) root.preferredW = d.width
+        if (typeof d.height === "number" && isFinite(d.height) && d.height > 0) root.preferredH = d.height
+      } catch (e) { /* Invalid/missing preferences fall back to 640 × 720. */ }
+    }
+  }
+  function saveSize() {
+    if (root.anchorScreen) geometryFile.setText(JSON.stringify({version: 1, width: cardW, height: cardH}) + "\n")
+  }
+  function resetSize() {
+    preferredW = 640; preferredH = 720
+    resizedX = -1; resizedY = -1
+    saveSize()
+  }
+  function beginResize(edge, px, py) {
+    resizeStart = {edge: edge, px: px, py: py, x: cardX, y: cardY, w: cardW, h: cardH}
+  }
+  function updateResize(px, py) {
+    var s = resizeStart
+    if (!s) return
+    var dx = px - s.px, dy = py - s.py
+    var left = s.x, right = s.x + s.w, top = s.y, bottom = s.y + s.h
+    if (s.edge.indexOf("l") >= 0) left = Math.max(gap, Math.min(s.x + dx, right - minCardW))
+    if (s.edge.indexOf("r") >= 0) right = Math.min(screenW - gap, Math.max(s.x + s.w + dx, left + minCardW))
+    if (s.edge.indexOf("t") >= 0) top = Math.max(gap, Math.min(s.y + dy, bottom - minCardH))
+    if (s.edge.indexOf("b") >= 0) bottom = Math.min(screenH - barH - gap, Math.max(s.y + s.h + dy, top + minCardH))
+    preferredW = right - left; preferredH = bottom - top
+    resizedX = left; resizedY = top
+  }
+  function finishResize() {
+    resizeStart = null
+    saveSize()
+  }
 
   // Icon position within the bar's content surface. mapToItem inside a
   // property binding IS reactive to layout changes in QML, matching
@@ -288,11 +342,13 @@ Item {
   // Horizontal: icon lands ~90px into the card; true centering clamps off-screen
   // because the icon is at the bar's far-left. Clamped to stay on-screen.
   readonly property real cardX: {
+    if (resizedX >= 0) return Math.max(gap, Math.min(resizedX, screenW - cardW - gap))
     if (iconScreenX < 0) return gap
     var x = iconScreenX + button.width / 2 - 90
     return Math.max(root.gap, Math.min(x, root.screenW - root.cardW - root.gap))
   }
   readonly property real cardY: {
+    if (resizedY >= 0) return Math.max(gap, Math.min(resizedY, screenH - barH - cardH - gap))
     if (iconScreenX < 0) return gap
     var y = root.screenH - root.barH - root.cardH - root.gap
     return Math.max(root.gap, y)
@@ -330,6 +386,8 @@ Item {
 
     // ── The card ─────────────────────────────────────────────────────────
     Rectangle {
+      id: panelCard
+      objectName: "cdailyCard"
       x: root.cardX
       y: root.cardY
       width: root.cardW
@@ -359,6 +417,7 @@ Item {
       }
 
       Column {
+        id: contentColumn
         x: 16; y: 14
         width: parent.width - 32
         spacing: 10
@@ -376,12 +435,27 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
           }
           Text {
+            id: statusLabel
+            width: Math.max(40, parent.width - 230)
+            elide: Text.ElideRight
             text: root.loading ? "cargando…" : (root.loadError || ((root.stats.total || 0) + " sin leer"))
             font.pixelSize: 11
             color: "#94a3b8"
             anchors.verticalCenter: parent.verticalCenter
           }
-          Item { width: parent.width - 300; height: 1 }
+          Item { width: 24; height: 1 }
+          Rectangle {
+            width: 24; height: 24; radius: 12
+            color: resetMA.containsMouse ? "#2b3242" : "#1f2430"
+            Text { anchors.centerIn: parent; text: "↺"; color: "#f8fafc"; font.pixelSize: 13 }
+            MouseArea {
+              id: resetMA
+              anchors.fill: parent; hoverEnabled: true
+              onClicked: root.resetSize()
+              ToolTip.visible: containsMouse
+              ToolTip.text: "Restaurar tamaño (640 × 720)"
+            }
+          }
           Rectangle {
             width: 24; height: 24; radius: 12
             color: refreshMA.containsMouse ? "#2b3242" : "#1f2430"
@@ -396,8 +470,8 @@ Item {
           }
         }
 
-        // ── Category pills (app-style, with unread counts) ────────────────
-        Row {
+        // Category pills wrap when the panel is narrowed.
+        Flow {
           width: parent.width
           spacing: 6
           Repeater {
@@ -438,7 +512,8 @@ Item {
         ListView {
           id: list
           width: parent.width
-          height: root.cardH - 150   // header (~44) + pills row (~34) + margins/spacing
+          objectName: "cdailyArticles"
+          height: Math.max(0, root.cardH - contentColumn.y - y - 16)
           clip: true
           spacing: 8
           model: root.articles
@@ -694,6 +769,44 @@ Item {
             color: "#64748b"
           }
         }
+      }
+      // Thin border-only hit areas: never intercept article wheel/clicks.
+      Repeater {
+        model: ["l", "r", "t", "b", "lt", "rt", "lb", "rb"]
+        MouseArea {
+          required property string modelData
+          readonly property bool corner: modelData.length === 2
+          readonly property bool horizontal: modelData === "t" || modelData === "b"
+          x: modelData.indexOf("r") >= 0 ? panelCard.width - width : (horizontal ? 16 : 0)
+          y: modelData.indexOf("b") >= 0 ? panelCard.height - height : (!corner && !horizontal ? 16 : 0)
+          width: corner ? 16 : (horizontal ? panelCard.width - 32 : 8)
+          height: corner ? 16 : (horizontal ? 8 : panelCard.height - 32)
+          z: 20
+          hoverEnabled: true
+          acceptedButtons: Qt.LeftButton
+          preventStealing: true
+          cursorShape: corner ? ((modelData === "lt" || modelData === "rb") ? Qt.SizeFDiagCursor : Qt.SizeBDiagCursor) : (horizontal ? Qt.SizeVerCursor : Qt.SizeHorCursor)
+          onPressed: function(mouse) {
+            var p = mapToItem(panel.contentItem, mouse.x, mouse.y)
+            root.beginResize(modelData, p.x, p.y)
+          }
+          onPositionChanged: function(mouse) {
+            if (!pressed) return
+            var p = mapToItem(panel.contentItem, mouse.x, mouse.y)
+            root.updateResize(p.x, p.y)
+          }
+          onReleased: root.finishResize()
+          onCanceled: root.finishResize()
+          onDoubleClicked: root.resetSize()
+          ToolTip.visible: containsMouse && !pressed
+          ToolTip.delay: 600
+          ToolTip.text: "Arrastra para cambiar tamaño · doble clic para restaurar"
+        }
+      }
+      Text {
+        anchors.right: parent.right; anchors.top: parent.top
+        anchors.rightMargin: 5; anchors.topMargin: 2
+        text: "◥"; color: "#64748b"; font.pixelSize: 11
       }
     }
   }
