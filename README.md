@@ -15,6 +15,8 @@ CDaily es un poco eso. Un feed reader minimalista que abres en una pestaña y ho
 - Guarda ratings 1–5 para reordenar el feed
 - Genera resúmenes IA bajo demanda
 - Extrae y cachea imágenes OG cuando existen
+- Se integra como [widget de barra en Omarchy](integrations/omarchy/cdaily/README.md)
+- Incluye un [plugin nativo de Hermes Agent](#plugin-nativo-de-hermes-agent) con 12 herramientas para consultar y curar el mismo feed
 - Expone un servidor **MCP** (Model Context Protocol) para que agentes (Claude Code, Cursor, Codex CLI) lean, busquen y curen el feed sin pasar por la UI
 
 ## Requisitos
@@ -118,14 +120,50 @@ para Hermes. Conecta con el mismo backend HTTP del widget y comparte lecturas,
 favoritos, ratings y cachés. Permite consultar el feed y su digest, buscar,
 curar artículos, resumir, traducir, escanear y gestionar fuentes desde el agente.
 
-No necesita instalar dependencias de CDaily dentro de Hermes. El backend debe
-estar encendido; el widget continúa funcionando como hasta ahora.
+El plugin ofrece **12 herramientas** y no necesita instalar dependencias de CDaily
+dentro de Hermes. El backend debe estar encendido; el widget continúa funcionando
+como hasta ahora. Los resúmenes y traducciones usan la IA configurada en CDaily.
 
-Consulta [instalación, configuración y herramientas](integrations/hermes/cdaily/README.md).
+### Instalar y habilitar
+
+En el perfil de Hermes que quieras usar:
 
 ```bash
-hermes plugins doctor integrations/hermes/cdaily --ci
+hermes plugins install Grizaceo/cdaily/integrations/hermes/cdaily --enable
 ```
+
+Abre una **sesión nueva de Hermes** después de instalarlo. Por defecto conecta con
+`http://127.0.0.1:7890`. Si tu backend usa otra dirección o puerto, configura la
+misma URL que utiliza tu widget:
+
+```bash
+hermes config set plugins.entries.cdaily.settings.api_url http://127.0.0.1:7890
+```
+
+Sustituye esa URL por la de tu backend. Si este requiere autenticación, proporciona
+el mismo `CDAILY_API_TOKEN` en el entorno del proceso Hermes.
+
+### Qué puedes pedirle a Hermes
+
+- «Muéstrame el digest de CDaily agrupado por categoría».
+- «Busca noticias sobre Linux en CDaily y dame los enlaces».
+- «Marca el artículo 42 como leído y ponle un rating de 5».
+- «Genera el resumen del artículo 42».
+- «Escanea las fuentes de CDaily».
+
+| Función | Herramientas (prefijo `cdaily_`) |
+| --- | --- |
+| Consulta | `feed_read`, `feed_digest`, `feed_stats` |
+| Curación | `article_mark_apply`, `article_rate_apply`, `feed_clear_apply` |
+| IA | `article_summarize_apply`, `article_translate_apply` |
+| Fuentes | `sources_list`, `sources_add_apply`, `sources_remove_apply`, `feed_scan_apply` |
+
+Las herramientas `_apply` cambian el estado compartido. El digest devuelve datos
+agrupados para que Hermes redacte el briefing; las consultas no marcan artículos
+como leídos ni generan resúmenes automáticamente.
+
+Consulta la [guía completa del plugin](integrations/hermes/cdaily/README.md) para
+instalación desde un checkout, timeouts, pruebas y detalles de cada herramienta.
 
 ## MCP server (agent-native)
 
