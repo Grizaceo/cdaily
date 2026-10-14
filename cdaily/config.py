@@ -106,10 +106,16 @@ def save_ai_preferences(new_prefs: dict) -> None:
 
     preferred_language = str(new_prefs.get("preferred_language", "English")).strip() or "English"
 
+    api_key = str(new_prefs.get("api_key", "")).strip()
+    env_api_key = os.environ.get("CDAILY_AI_API_KEY", "").strip()
+    if env_api_key and api_key == env_api_key:
+        # The key comes from the environment: never copy it into the YAML on disk.
+        api_key = str((raw.get("ai_preferences") or {}).get("api_key") or "").strip()
+
     raw["ai_preferences"] = {
         "enabled": bool(new_prefs.get("enabled")),
         "endpoint": str(new_prefs.get("endpoint", "")).strip(),
-        "api_key": str(new_prefs.get("api_key", "")).strip(),
+        "api_key": api_key,
         "auth_type": str(new_prefs.get("auth_type", "none")).strip(),
         "auth_header_name": str(new_prefs.get("auth_header_name", "")).strip(),
         "model": str(new_prefs.get("model", "")).strip(),

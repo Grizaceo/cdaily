@@ -11,16 +11,17 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from ..config import CONFIG, save_ai_preferences
-
-# Placeholder returned by GET /api/settings instead of the cleartext key.
-# The frontend sends it back on save to signal "unchanged" (keep existing key).
-API_KEY_MASK = "********"
 from ..database import get_stats
 from ..models import AISettingsIn
 from ..rate_limiter import limiter
 from ..services.article_images import fetch_missing_images
+from ..services.article_summary import _redact_error_body
 from ..services.scan import run_scan
 from ..validate_url import validate_url
+
+# Placeholder returned by GET /api/settings instead of the cleartext key.
+# The frontend sends it back on save to signal "unchanged" (keep existing key).
+API_KEY_MASK = "********"
 
 router = APIRouter(tags=["system"])
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -103,14 +104,21 @@ def _require_settings_auth(request: Request) -> None:
         )
 
 
-def _resolve_api_key(incoming: str | None) -> str:
+def _resolve_api_key(incoming: str | None, endpoint: str) -> str:
     """If the client echoed the mask placeholder back, keep the stored key.
 
     This lets the settings UI re-save without forcing the user to retype the key,
     while still allowing an explicit empty string to clear it and a new value to replace it.
+
+    The mask only stands for the stored key when the request targets the stored
+    endpoint. Otherwise any caller could send the stored secret to a host of their
+    choosing, so a new endpoint requires the key to be typed again (ValueError).
     """
     if incoming == API_KEY_MASK:
-        return (CONFIG.get("ai_preferences", {}).get("api_key") or "").strip()
+        stored = CONFIG.get("ai_preferences", {})
+        if (endpoint or "").strip() != (stored.get("endpoint") or "").strip():
+            raise ValueError("re-enter the API key to use it with a different endpoint")
+        return (stored.get("api_key") or "").strip()
     return (incoming or "").strip()
 
 
@@ -126,7 +134,10 @@ def api_save_settings(payload: AISettingsIn, request: Request):
         return {"ok": False, "error": f"Invalid endpoint: {str(e)}"}
 
     prefs = payload.model_dump()
-    prefs["api_key"] = _resolve_api_key(payload.api_key)
+    try:
+        prefs["api_key"] = _resolve_api_key(payload.api_key, payload.endpoint)
+    except ValueError as e:
+        return {"ok": False, "error": f"API key: {e}"}
     save_ai_preferences(prefs)
     return {"ok": True}
 
@@ -138,7 +149,6 @@ async def api_test_settings(payload: AISettingsIn, request: Request):
     _require_settings_auth(request)
     endpoint = payload.endpoint
     auth_type = payload.auth_type
-    api_key = _resolve_api_key(payload.api_key)
     auth_header_name = payload.auth_header_name
     model = payload.model
 
@@ -147,6 +157,11 @@ async def api_test_settings(payload: AISettingsIn, request: Request):
         validate_url(endpoint, allow_private=True)
     except ValueError as e:
         return {"ok": False, "error": f"Invalid endpoint: {str(e)}"}
+
+    try:
+        api_key = _resolve_api_key(payload.api_key, endpoint)
+    except ValueError as e:
+        return {"ok": False, "error": f"API key: {e}"}
 
     # Prepare Headers
     headers = {"Content-Type": "application/json"}
@@ -164,9 +179,7 @@ async def api_test_settings(payload: AISettingsIn, request: Request):
     # Simple completion request to test connection
     test_payload = {
         "model": model,
-        "messages": [
-            {"role": "user", "content": "Dí hola de vuelta muy brevemente para confirmar conexión."}
-        ],
+        "messages": [{"role": "user", "content": "Dí hola de vuelta muy brevemente para confirmar conexión."}],
         "max_tokens": 15,
         "temperature": 0.5,
     }
@@ -177,7 +190,8 @@ async def api_test_settings(payload: AISettingsIn, request: Request):
             if response.status_code != 200:
                 return {
                     "ok": False,
-                    "error": f"Error del servidor de IA (Status {response.status_code}): {response.text[:200]}",
+                    "error": f"Error del servidor de IA (Status {response.status_code}): "
+                    f"{_redact_error_body(response.text[:200])}",
                 }
 
             data = response.json()

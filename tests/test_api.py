@@ -318,7 +318,7 @@ def test_api_settings_flow(client):
         "auth_header_name": "",
         "model": "google/gemini-2.5-flash",
         "system_prompt": "Test Prompt",
-        "max_content_chars": 12000
+        "max_content_chars": 12000,
     }
     res = client.post("/api/settings", json=openrouter_payload)
     assert res.status_code == 200
@@ -370,6 +370,7 @@ def test_extract_og_image_resolves_relative_urls():
 
 def test_get_article_og_image_tuple_signature(client):
     from cdaily.repositories.articles import get_article_og_image, save_article_og_image
+
     db = os.environ["CDAILY_DB_PATH"]
     _seed(db)
 
@@ -409,6 +410,7 @@ def test_api_article_image_caching_behavior(client):
     data2 = res2.json()
     assert data2["image_url"] is None
     assert data2["cached"] is True
+
 
 def test_get_blogs_empty(client):
     res = client.get("/api/blogs")
@@ -588,5 +590,118 @@ def test_post_settings_preserves_existing_key_on_mask_roundtrip(monkeypatch):
     assert res["has_api_key"] is True
 
     # Save with the mask echoed back -> real key preserved (not overwritten).
-    resolved = system_route._resolve_api_key("********")
+    resolved = system_route._resolve_api_key("********", "http://localhost:12345/v1/chat/completions")
     assert resolved == real_key
+
+
+# ── H1 follow-up: the mask must not carry the stored key to a new endpoint ────
+
+_STORED_ENDPOINT = "http://127.0.0.1:12345/v1/chat/completions"
+_OTHER_ENDPOINT = "http://127.0.0.1:9999/steal"
+
+
+def _stored_prefs(key: str) -> dict:
+    return {
+        "ai_preferences": {
+            "enabled": True,
+            "endpoint": _STORED_ENDPOINT,
+            "api_key": key,
+            "auth_type": "bearer",
+            "model": "m",
+            "system_prompt": "Summarize this.",
+            "max_content_chars": 12000,
+        }
+    }
+
+
+def _settings_payload(endpoint: str, api_key: str = "********") -> dict:
+    return {
+        "enabled": True,
+        "endpoint": endpoint,
+        "api_key": api_key,
+        "auth_type": "bearer",
+        "auth_header_name": "",
+        "model": "m",
+        "system_prompt": "Summarize this.",
+        "max_content_chars": 12000,
+    }
+
+
+def test_settings_test_rejects_mask_for_other_endpoint(client, monkeypatch):
+    """The stored key is never sent to an endpoint other than the stored one."""
+    import httpx
+
+    monkeypatch.setattr("cdaily.routes.system.CONFIG", _stored_prefs("sk-stored-secret-123"))
+    sent = []
+
+    async def fake_post(self, url, **kwargs):
+        sent.append((url, kwargs.get("headers")))
+        raise AssertionError("no outbound request expected")
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
+
+    res = client.post("/api/settings/test", json=_settings_payload(_OTHER_ENDPOINT))
+    assert res.status_code == 200
+    assert res.json()["ok"] is False
+    assert "re-enter the API key" in res.json()["error"]
+    assert sent == []
+
+
+def test_settings_save_rejects_mask_for_other_endpoint(client, monkeypatch):
+    stored = _stored_prefs("sk-stored-secret-123")
+    monkeypatch.setattr("cdaily.routes.system.CONFIG", stored)
+    saved = []
+    monkeypatch.setattr("cdaily.routes.system.save_ai_preferences", saved.append)
+
+    res = client.post("/api/settings", json=_settings_payload(_OTHER_ENDPOINT))
+    assert res.json()["ok"] is False
+    assert saved == []
+
+    res = client.post("/api/settings", json=_settings_payload(_STORED_ENDPOINT))
+    assert res.json()["ok"] is True
+    assert saved[0]["api_key"] == "sk-stored-secret-123"
+
+
+def test_settings_test_redacts_provider_error_body(client, monkeypatch):
+    import httpx
+
+    async def fake_post(self, url, **kwargs):
+        return httpx.Response(401, text="Invalid API key: sk-abcdef1234567890")
+
+    monkeypatch.setattr(httpx.AsyncClient, "post", fake_post)
+
+    res = client.post("/api/settings/test", json=_settings_payload(_STORED_ENDPOINT, "sk-abcdef1234567890"))
+    data = res.json()
+    assert data["ok"] is False
+    assert "sk-abcdef1234567890" not in data["error"]
+    assert "[REDACTED]" in data["error"]
+
+
+def test_save_ai_preferences_keeps_env_key_out_of_yaml(monkeypatch, tmp_path):
+    """A key supplied via CDAILY_AI_API_KEY is never persisted to config.yaml."""
+    import cdaily.config as cfg_mod
+
+    cfg_file = tmp_path / "config.yaml"
+    cfg_file.write_text(
+        yaml.safe_dump(
+            {
+                "host": "127.0.0.1",
+                "port": 7890,
+                "db_path": str(tmp_path / "x.db"),
+                "scan_interval_minutes": 30,
+                "refresh_interval_seconds": 60,
+                "log_level": "INFO",
+                "ai_preferences": {"api_key": ""},
+            }
+        )
+    )
+    monkeypatch.setenv("CDAILY_CONFIG", str(cfg_file))
+    monkeypatch.setenv("CDAILY_AI_API_KEY", "sk-from-env-only-123")
+    monkeypatch.setattr(cfg_mod, "CONFIG", {})
+
+    prefs = _settings_payload(_STORED_ENDPOINT, "sk-from-env-only-123")
+    cfg_mod.save_ai_preferences(prefs)
+
+    assert "sk-from-env-only-123" not in cfg_file.read_text()
+    # The running config still uses the env key.
+    assert cfg_mod.CONFIG["ai_preferences"]["api_key"] == "sk-from-env-only-123"
