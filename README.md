@@ -111,6 +111,22 @@ blogwatcher-cli remove "Nombre" --yes
 
 Los cambios se reflejan en CDaily al siguiente refresh automático o manual.
 
+## Plugin nativo de Hermes Agent
+
+Además del widget de Omarchy y del MCP, CDaily incluye un plugin de herramientas
+para Hermes. Conecta con el mismo backend HTTP del widget y comparte lecturas,
+favoritos, ratings y cachés. Permite consultar el feed y su digest, buscar,
+curar artículos, resumir, traducir, escanear y gestionar fuentes desde el agente.
+
+No necesita instalar dependencias de CDaily dentro de Hermes. El backend debe
+estar encendido; el widget continúa funcionando como hasta ahora.
+
+Consulta [instalación, configuración y herramientas](integrations/hermes/cdaily/README.md).
+
+```bash
+hermes plugins doctor integrations/hermes/cdaily --ci
+```
+
 ## MCP server (agent-native)
 
 CDaily incluye un servidor MCP que expone el feed como tools, resources y prompts. Agentes como **Claude Code**, **Cursor** o **Codex CLI** pueden leer y curar el feed por stdio, sin necesidad de que el FastAPI esté corriendo (el MCP accede al SQLite directamente vía la capa de repositorios).

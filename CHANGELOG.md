@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Added
+- **Hermes Agent plugin** (`integrations/hermes/cdaily`): 12 standalone HTTP tools for feed briefings, search, curation, AI summaries/translation and source management, sharing the existing backend with the Omarchy widget. Includes isolated API tests and installation instructions.
 - **Demo script**: `scripts/demo.sh` seeds a throwaway blogwatcher-cli DB with public feeds and runs CDaily on loopback, isolated from `~/.blogwatcher-cli` and the tracked `config.yaml`.
 - **Google News resolver**: Google News redirect URLs are resolved to the publisher article before summarizing; anti-bot walls fail fast instead of being summarized.
 - **Omarchy bar widget** (`integrations/omarchy/cdaily`): Quickshell panel with isolated thumbnail cache, mouse resize and per-monitor size persistence.

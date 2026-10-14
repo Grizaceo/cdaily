@@ -1,0 +1,31 @@
+name: cdaily
+version: 1.0.0
+manifest_version: 2
+description: Read and curate the shared CDaily feed from Hermes while keeping the Omarchy widget.
+license: MIT
+provides_tools:
+  - cdaily_feed_read
+  - cdaily_feed_digest
+  - cdaily_feed_stats
+  - cdaily_article_mark_apply
+  - cdaily_article_rate_apply
+  - cdaily_article_summarize_apply
+  - cdaily_article_translate_apply
+  - cdaily_feed_clear_apply
+  - cdaily_feed_scan_apply
+  - cdaily_sources_list
+  - cdaily_sources_add_apply
+  - cdaily_sources_remove_apply
+config_schema:
+  api_url:
+    type: str
+    default: http://127.0.0.1:7890
+    description: URL of the existing CDaily backend (same as the widget).
+  timeout:
+    type: int
+    default: 15
+    description: HTTP timeout in seconds for reads and quick actions (1-600).
+  slow_timeout:
+    type: int
+    default: 180
+    description: HTTP timeout in seconds for scanning, AI and source management (1-600).
