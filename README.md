@@ -51,6 +51,7 @@ El archivo tracked `config.yaml` usa categorías genéricas y defaults seguros. 
 Variables útiles:
 
 - `CDAILY_CONFIG` — ruta a un YAML alternativo
+- `CDAILY_HOST` / `CDAILY_PORT` — override de host y puerto de escucha
 - `CDAILY_DB_PATH` — override del path a la DB
 - `CDAILY_AI_ENDPOINT` — endpoint OpenAI-compatible para resúmenes
 - `CDAILY_AI_API_KEY` — API key opcional para el endpoint de IA
@@ -62,7 +63,7 @@ export CDAILY_AI_ENDPOINT="http://localhost:12345/v1/chat/completions"
 export CDAILY_AI_API_KEY="tu_key_si_aplica"
 ```
 
-También puedes copiar `.env.example` a `.env` o `config.yaml.example` a `config.yaml` si prefieres empezar desde los defaults públicos. `.env`, `.env.local` y `config.local.yaml` están ignorados por git.
+También puedes copiar `.env.example` a `.env` y cargarlo en tu shell (`set -a; source .env; set +a`, o automáticamente vía `docker compose`), o copiar `config.yaml.example` a `config.local.yaml`. `.env`, `.env.local` y `config.local.yaml` están ignorados por git.
 
 ## Docker
 
@@ -206,7 +207,7 @@ Una vez seteado, toda request a `/api/*` requiere header:
 Authorization: Bearer <tu-token-seguro>
 ```
 
-La página principal (`GET /`) y archivos estáticos quedan abiertos.
+La página principal (`GET /`) y archivos estáticos quedan abiertos. Nota: la UI web no envía el header `Authorization`, por lo que `CDAILY_API_TOKEN` está pensado para proteger el acceso programático a `/api/*` (para proteger la UI completa en red, usa autenticación en el reverse proxy).
 
 Si no seteas `CDAILY_API_TOKEN`, la autenticación está desactivada y todo
 funciona como antes — ideal para desarrollo local.

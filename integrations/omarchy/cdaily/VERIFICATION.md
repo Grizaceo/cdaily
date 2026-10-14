@@ -23,7 +23,7 @@ Se respaldó el `Widget.qml` previo antes de los cambios.
 - Captura del panel muestra títulos y miniaturas; posición por encima de la barra.
 - Fallos GET controlados en un servidor loopback aislado: rechazo de conexión, JSON inválido y timeout. Los tres terminan con `loading=false` y error explícito. `network-check.json` contiene resultados. No se detuvo el servicio live para estas pruebas.
 - `cdaily.service`: activo. `/api/stats` y listado de artículos: responden.
-- Web `http://127.0.0.1:8090/`: renderiza artículos; filtro Tech y búsqueda sin coincidencias funcionan; filtro y búsqueda restaurados.
+- Web `http://127.0.0.1:7890/`: renderiza artículos; filtro Tech y búsqueda sin coincidencias funcionan; filtro y búsqueda restaurados.
 - Suite backend: **118 passed, 4 skipped**, 13 warnings de deprecación de slowapi, exit 0.
 - Logs finales: sin errores atribuibles a `plugins/cdaily/`.
 

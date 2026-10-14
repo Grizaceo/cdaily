@@ -2,7 +2,7 @@
 
 Fuente versionada del plugin de usuario instalado en
 `~/.config/omarchy/plugins/cdaily/`. El backend debe estar disponible en
-`http://127.0.0.1:8090` y el equipo debe disponer de Quickshell y `/usr/bin/python`.
+`http://127.0.0.1:7890` (o en la URL definida por `CDAILY_URL`) y el equipo debe disponer de Quickshell y `/usr/bin/python`.
 
 ## Instalación / actualización manual
 

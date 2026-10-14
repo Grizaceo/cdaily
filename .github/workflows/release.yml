@@ -94,8 +94,8 @@ jobs:
             
             ### Qué incluye
             * Lector de feeds minimalista que lee directo de `blogwatcher-cli.db`
-            * Generador de resúmenes con Inteligencia Artificial
-            * Integración inmersiva nativa con el mapa imperial **RepoCiv**
+            * Generador de resúmenes y traducción con Inteligencia Artificial (OpenAI-compatible)
+            * Servidor MCP agent-native (13 tools) y widget para barra Omarchy
             
             ### Instalación
             ```bash
@@ -105,5 +105,5 @@ jobs:
             
             O ejecuta con Docker:
             ```bash
-            docker run -d -p 7890:7890 -v ~/.blogwatcher-cli:/root/.blogwatcher-cli ghcr.io/grizaceo/cdaily:latest
+            docker run -d -p 127.0.0.1:7890:7890 -e CDAILY_HOST=0.0.0.0 -v ~/.blogwatcher-cli:/root/.blogwatcher-cli ghcr.io/grizaceo/cdaily:latest
             ```

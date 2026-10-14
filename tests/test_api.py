@@ -705,3 +705,21 @@ def test_save_ai_preferences_keeps_env_key_out_of_yaml(monkeypatch, tmp_path):
     assert "sk-from-env-only-123" not in cfg_file.read_text()
     # The running config still uses the env key.
     assert cfg_mod.CONFIG["ai_preferences"]["api_key"] == "sk-from-env-only-123"
+
+
+def test_load_config_falls_back_to_builtin_defaults_and_env_overrides(monkeypatch, tmp_path):
+    """When installed from a wheel without config.yaml on disk, built-in defaults apply."""
+    import cdaily.config as cfg_mod
+
+    monkeypatch.delenv("CDAILY_CONFIG", raising=False)
+    monkeypatch.setenv("CDAILY_HOST", "0.0.0.0")
+    monkeypatch.setenv("CDAILY_PORT", "9001")
+    # Point __file__ inside an empty directory so parent.parent / config.yaml does not exist.
+    fake_pkg = tmp_path / "site-packages" / "cdaily"
+    fake_pkg.mkdir(parents=True)
+    monkeypatch.setattr(cfg_mod, "__file__", str(fake_pkg / "config.py"))
+
+    loaded = cfg_mod.load_config()
+    assert loaded["host"] == "0.0.0.0"
+    assert loaded["port"] == 9001
+    assert loaded["ai_preferences"]["preferred_language"] == "English"

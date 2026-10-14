@@ -14,7 +14,7 @@ Item {
   implicitWidth: 30
   implicitHeight: 30
 
-  readonly property string cdailyApi: "http://127.0.0.1:8090"
+  readonly property string cdailyApi: Quickshell.env("CDAILY_URL") || "http://127.0.0.1:7890"
   property int unreadCount: 0
   property var articles: []
   property bool opened: false

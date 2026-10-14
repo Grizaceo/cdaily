@@ -50,6 +50,33 @@ DEFAULT_CATEGORY_EMOJI: Dict[str, str] = {
 }
 
 
+def _default_raw_config() -> dict:
+    """Built-in public defaults used when no config.yaml is present (e.g. wheel install)."""
+    return {
+        "host": "127.0.0.1",
+        "port": 7890,
+        "db_path": "~/.blogwatcher-cli/blogwatcher-cli.db",
+        "scan_interval_minutes": 30,
+        "refresh_interval_seconds": 60,
+        "log_level": "INFO",
+        "ai_preferences": {
+            "enabled": True,
+            "endpoint": "http://localhost:12345/v1/chat/completions",
+            "model": "qwen2.5-7b-instruct-1m",
+            "api_key": "",
+            "max_content_chars": 12000,
+            "preferred_language": "English",
+            "system_prompt": (
+                "Summarize the article in 3 very short bullet points.\n"
+                "Focus on practical takeaways, key facts, and the main implication.\n"
+                'If the article is too short or invalid, say: "Not enough content to summarize."\n'
+            ),
+        },
+        "blog_categories": dict(DEFAULT_BLOG_CATEGORIES),
+        "category_emoji": dict(DEFAULT_CATEGORY_EMOJI),
+    }
+
+
 def _resolve_path(path: str) -> Path:
     """Expand ~ and environment variables in paths."""
     return Path(os.path.expandvars(os.path.expanduser(path)))
@@ -68,12 +95,24 @@ def _validate_schema(raw: dict) -> None:
 
 def load_config(config_path: str | None = None) -> dict:
     """Load and validate config."""
+    explicit_path = config_path is not None or "CDAILY_CONFIG" in os.environ
     if config_path is None:
         config_path = os.environ.get("CDAILY_CONFIG", str(Path(__file__).parent.parent / "config.yaml"))
-    with open(config_path, encoding="utf-8") as f:
-        raw = yaml.safe_load(f)
+    if os.path.exists(config_path):
+        with open(config_path, encoding="utf-8") as f:
+            raw = yaml.safe_load(f)
+    elif explicit_path:
+        raise FileNotFoundError(f"Configuration file not found: {config_path}")
+    else:
+        raw = _default_raw_config()
 
     # Resolve paths and allow safe env overrides
+    env_host = os.environ.get("CDAILY_HOST")
+    if env_host:
+        raw["host"] = env_host
+    env_port = os.environ.get("CDAILY_PORT")
+    if env_port:
+        raw["port"] = int(env_port)
     env_db_path = os.environ.get("CDAILY_DB_PATH")
     if env_db_path:
         raw["db_path"] = env_db_path
@@ -96,13 +135,15 @@ def save_ai_preferences(new_prefs: dict) -> None:
     """Updates ai_preferences in config.yaml and reloads CONFIG in-place."""
     config_path = os.environ.get("CDAILY_CONFIG", str(Path(__file__).parent.parent / "config.yaml"))
 
-    raw = {}
+    raw = _default_raw_config()
     if os.path.exists(config_path):
         with open(config_path, "r", encoding="utf-8") as f:
             try:
-                raw = yaml.safe_load(f) or {}
+                loaded_yaml = yaml.safe_load(f)
+                if isinstance(loaded_yaml, dict):
+                    raw.update(loaded_yaml)
             except Exception:
-                raw = {}
+                pass
 
     preferred_language = str(new_prefs.get("preferred_language", "English")).strip() or "English"
 

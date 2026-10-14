@@ -43,6 +43,25 @@ pattern = "(?P<version>[^\n]+)"
 [tool.hatch.build.targets.wheel]
 packages = ["cdaily"]
 
+[tool.hatch.build.targets.sdist]
+include = [
+    "/cdaily",
+    "/tests",
+    "/scripts",
+    "/integrations",
+    "/config.yaml",
+    "/config.yaml.example",
+    "/config.local.yaml.example",
+    "/.env.example",
+    "/requirements.txt",
+    "/README.md",
+    "/CHANGELOG.md",
+    "/CONTRIBUTING.md",
+    "/LICENSE",
+    "/VERSION",
+    "/pytest.ini",
+]
+
 [tool.black]
 line-length = 120
 target-version = ['py311']
