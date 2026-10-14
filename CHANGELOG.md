@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### Added
+- **Demo script**: `scripts/demo.sh` seeds a throwaway blogwatcher-cli DB with public feeds and runs CDaily on loopback, isolated from `~/.blogwatcher-cli` and the tracked `config.yaml`.
+- **Google News resolver**: Google News redirect URLs are resolved to the publisher article before summarizing; anti-bot walls fail fast instead of being summarized.
+- **Omarchy bar widget** (`integrations/omarchy/cdaily`): Quickshell panel with isolated thumbnail cache, mouse resize and per-monitor size persistence.
+- **worldmonitor sync service** (`cdaily/services/worldmonitor_sync.py`).
+
+### Fixed
+- **Security (H1)**: `GET /api/settings` masks the API key; settings writes require `CDAILY_API_TOKEN` when it is set.
+- **Security (H1 follow-up)**: the masked key is only honored for the stored endpoint, so `/api/settings` and `/api/settings/test` can no longer send the stored key to a caller-chosen host. A key supplied via `CDAILY_AI_API_KEY` is never written to `config.yaml`, and `/api/settings/test` redacts provider error bodies.
+- **Security (host default)**: tracked `config.yaml` and `config.yaml.example` bind to `127.0.0.1` again (had regressed to `0.0.0.0` in 0.1.1.0).
+- **Security (H2/S1-S3)**: AI provider error bodies are redacted; SSRF guard resolves DNS and re-validates every redirect hop when fetching articles.
+- **AI summaries**: bounded retries on transport/5xx errors.
+- **remove_blog**: deletes child rows in FK order; frontend infinite-scroll pagination polish.
+- **CI**: black/flake8 clean again; network-marked tests are excluded in CI and skip when no local DB exists.
+
+### Changed
+- `mcp[cli]` pinned to `<2` in `requirements.txt`.
+
 ## [0.1.2.0] - 2026-06-22
 
 ### Added

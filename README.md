@@ -2,7 +2,7 @@
 
 Todos tus agentes están corriendo. Tus cron jobs disparan, tus scripts scrapean, tus modelos infieren. ¿Qué haces ahora que no te distraiga tanto pero sea casi tocar pasto?
 
-CDaily es un poco eso. Un feed reader minimalista que abres en una pestaña y hojeas entre tasks. Lee directo del SQLite de blogwatcher-cli, sin duplicar datos. Sin notificaciones. Sin scroll infinito. Solo una cuadrícula de lo que está pasando afuera mientras tú estás adentro.
+CDaily es un poco eso. Un feed reader minimalista que abres en una pestaña y hojeas entre tasks. Lee directo del SQLite de blogwatcher-cli, sin duplicar datos. Sin notificaciones. Sin algoritmo que decida qué ves. Solo una cuadrícula de lo que está pasando afuera mientras tú estás adentro.
 
 ![CDaily screenshot](docs/images/cdaily-home.png)
 
@@ -32,6 +32,17 @@ python -m pip install -r requirements.txt
 python -m cdaily.main
 # abrir http://localhost:7890
 ```
+
+## Demo en 1 minuto
+
+¿Sin feeds propios todavía? `scripts/demo.sh` crea una DB desechable con 8 feeds públicos (Ars Technica, Krebs, Schneier, The Hacker News…), la escanea con `blogwatcher-cli` y levanta CDaily en `127.0.0.1` sin tocar `~/.blogwatcher-cli` ni tu `config.yaml`.
+
+```bash
+scripts/demo.sh            # DB en $TMPDIR/cdaily-demo
+# abrir http://127.0.0.1:7891
+```
+
+Variables opcionales: `CDAILY_DEMO_PORT`, `PYTHON` y `CDAILY_AI_ENDPOINT` / `CDAILY_AI_API_KEY` para probar los resúmenes IA.
 
 ## Configuración
 
