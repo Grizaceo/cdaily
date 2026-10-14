@@ -14,7 +14,7 @@ services:
     restart: unless-stopped
     user: "${UID:-1000}:${GID:-1000}"
     environment:
-      TZ: America/Santiago
+      TZ: ${TZ:-UTC}
       CDAILY_CONFIG: /app/config.yaml
       CDAILY_AI_ENDPOINT: ${CDAILY_AI_ENDPOINT:-http://host.docker.internal:12345/v1/chat/completions}
       CDAILY_AI_API_KEY: ${CDAILY_AI_API_KEY:-}

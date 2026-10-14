@@ -25,20 +25,14 @@ Tests use in-memory SQLite fixtures; no live blogwatcher-cli DB required.
 ```bash
 pip install -r requirements.txt
 python -m cdaily.main
-# http://127.0.0.1:8000
+# http://127.0.0.1:7890
 ```
 
-Config: tracked `config.yaml` + env overrides (`CDAILY_*`). Secrets only via `.env` / env vars (never commit).
+Config: tracked `config.yaml` holds public defaults only. Personal settings go in `config.local.yaml` (gitignored) via `CDAILY_CONFIG`; the settings UI writes to that file. Secrets only via env vars (`CDAILY_AI_API_KEY`, `CDAILY_API_TOKEN`), never committed. Never put real hostnames, IPs, local paths or personal names in tracked files.
 
-### WSL2 — acceso desde Windows
+### Acceso desde otro equipo (p. ej. navegador en Windows con WSL2)
 
-`localhost:8000` no funciona desde el navegador de Windows aunque el servidor responda.
-Causa: Windows Firewall + portproxy bloquean HTTP. Tailscale enruta correctamente.
-
-**URL real desde Windows:** `http://100.123.206.92:8000/` (IP Tailscale de WSL2)
-
-La IP Tailscale es estable entre reinicios (a diferencia de la IP eth0 de WSL2 que cambia).
-Si Tailscale no está activo, alternativa: `http://172.28.246.75:8000` (IP eth0, cambia en cada reinicio de WSL).
+`localhost` del host no es alcanzable desde otra máquina. Usa la IP Tailscale del host (`tailscale ip -4`) y, en `config.local.yaml`, un `host` que escuche en esa interfaz. Fuera de loopback cualquiera en esa red puede usar la API: la UI web no envía `CDAILY_API_TOKEN`, así que ese token solo sirve para clientes de API.
 
 ## Skill routing
 

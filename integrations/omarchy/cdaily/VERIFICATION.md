@@ -4,7 +4,7 @@
 
 Cambios únicamente en el plugin de usuario `~/.config/omarchy/plugins/cdaily/`.
 No se modificó Omarchy administrado ni código del backend CDaily.
-Backup anterior a los cambios: `Widget.qml.bak.20261010-212604`.
+Se respaldó el `Widget.qml` previo antes de los cambios.
 
 ## Evidencia y cambios
 
@@ -19,7 +19,7 @@ Backup anterior a los cambios: `Widget.qml.bak.20261010-212604`.
 
 - Suite de regresión del plugin: **10/10 pasan**.
 - Harness QML final: exit 0; `articles=40 loading=false opened=true`; sin ReferenceError/TypeError del widget.
-- Barra final: **6/6 ciclos** de apertura/cierre, tres en DP-2 y tres en DP-4. Dos barras mapeadas; mismo PID Quickshell 1514297 durante los seis ciclos. `integration-cycles.json` contiene los registros.
+- Barra final: **6/6 ciclos** de apertura/cierre, tres en DP-2 y tres en DP-4. Dos barras mapeadas; mismo proceso Quickshell durante los seis ciclos. `integration-cycles.json` contiene los registros.
 - Captura del panel muestra títulos y miniaturas; posición por encima de la barra.
 - Fallos GET controlados en un servidor loopback aislado: rechazo de conexión, JSON inválido y timeout. Los tres terminan con `loading=false` y error explícito. `network-check.json` contiene resultados. No se detuvo el servicio live para estas pruebas.
 - `cdaily.service`: activo. `/api/stats` y listado de artículos: responden.
@@ -35,12 +35,11 @@ Backup anterior a los cambios: `Widget.qml.bak.20261010-212604`.
 - Cierre/reapertura y recreación del Loader conservaron 480 × 820.
 - Rueda sobre ListView tras reducir: contentY=216, scroll operativo.
 - Harness final terminó con exit 0. El primer harness usó Qt.quit dentro del bucle anidado de QtTest y abortó al finalizar; reparado usando un Timer externo, sin cambios al plugin por ese fallo del test.
-- Versión final cargada en barra mediante reinicio soportado y summon con respuesta ok. Cristóbal confirmó funcionamiento con su mouse.
-- Prueba automatizada en `ACTIVE/cdaily-bar-debug/resize-test/shell.qml` (local, no empaquetada).
+- Versión final cargada en barra mediante reinicio soportado y summon con respuesta ok. Funcionamiento confirmado manualmente con mouse.
+- Prueba automatizada con un harness QML local (no incluido en el repo).
 
 ## Límites y observaciones
 
 - Apertura real probada mediante `omarchy-shell shell summon` / `hide`; la herramienta de escritorio no pudo obtener el surface de la barra para un clic físico automatizado.
 - No se ejecutó scan ni una generación LLM real ni se pulsaron acciones que modifican artículos live. Las rutas correspondientes cuentan con la suite backend, no con una prueba end-to-end de proveedor LLM.
-- Existe un warning independiente de `io.github.tammyx44.omaglimpse/SettingsPanel.qml:1710`: `TypeError: Property 'String' ... is not a function`. No se modificó ese plugin en esta reparación.
-- Logs/capturas/harnesses: `~/.hermes/workspace/ACTIVE/cdaily-bar-debug/`.
+- Logs, capturas y harnesses quedaron fuera del repo.

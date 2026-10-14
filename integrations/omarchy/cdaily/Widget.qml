@@ -361,7 +361,7 @@ Item {
     color: "transparent"
     exclusionMode: ExclusionMode.Ignore
 
-    WlrLayershell.namespace: "davi-cdaily-panel"
+    WlrLayershell.namespace: "cdaily-panel"
     WlrLayershell.layer: WlrLayer.Overlay
     // OnDemand lets the surface take focus when mapped and releases
     // compositor-wide pointer routing so clicks still reach the bar/apps.

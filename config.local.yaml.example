@@ -1,5 +1,6 @@
-# Optional local overrides for CDaily.
-# Copy to config.local.yaml if you want to override tracked defaults.
+# Personal config for CDaily, kept out of git (config.local.yaml is ignored).
+# CDaily does not merge it over config.yaml: copy config.yaml to config.local.yaml,
+# edit the keys below as needed, and run with CDAILY_CONFIG=/path/to/config.local.yaml.
 
 # host: "0.0.0.0"
 # port: 7890

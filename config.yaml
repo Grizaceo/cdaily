@@ -1,18 +1,20 @@
 host: "127.0.0.1"
-port: 8000
+port: 7890
 db_path: "~/.blogwatcher-cli/blogwatcher-cli.db"
 scan_interval_minutes: 30
 refresh_interval_seconds: 60
 log_level: "INFO"
 
+# Public defaults. For your own setup, copy this file to config.local.yaml
+# (ignored by git) and point CDAILY_CONFIG at it: the settings UI writes to
+# whichever file CDAILY_CONFIG names.
+#
 # AI summarization (optional)
-# The API key for a local LLM server (e.g. llama-server) must NOT live here in a
-# public repo. Provide it via the CDAILY_AI_API_KEY environment variable
-# (see the cdaily.service Environment= line). Leave this blank in version control.
+# Never put an API key here. Provide it via the CDAILY_AI_API_KEY environment variable.
 ai_preferences:
   enabled: true
-  endpoint: "http://127.0.0.1:8081/v1/chat/completions"
-  model: "Ornith-1.5-9B-OBLITERATED-Q4_K_M"
+  endpoint: "http://localhost:12345/v1/chat/completions"
+  model: "qwen2.5-7b-instruct-1m"
   api_key: ""
   max_content_chars: 12000
   preferred_language: "English"

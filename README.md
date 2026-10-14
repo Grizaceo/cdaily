@@ -46,7 +46,7 @@ Variables opcionales: `CDAILY_DEMO_PORT`, `PYTHON` y `CDAILY_AI_ENDPOINT` / `CDA
 
 ## Configuración
 
-El archivo tracked `config.yaml` usa categorías genéricas y defaults seguros. Para overrides locales, usa variables de entorno o un archivo local ignorado por git.
+El archivo tracked `config.yaml` usa categorías genéricas y defaults seguros. Para tu propia configuración, copia `config.yaml` a `config.local.yaml` (ignorado por git) y arranca con `CDAILY_CONFIG=/ruta/a/config.local.yaml`; la UI de settings guarda en el archivo que indique `CDAILY_CONFIG`.
 
 Variables útiles:
 

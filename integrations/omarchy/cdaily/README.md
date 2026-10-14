@@ -13,8 +13,10 @@ Desde la raíz del repositorio, respalda primero el plugin existente y copia
 - `integrations/omarchy/cdaily/thumbnail_cache.py`
 - `integrations/omarchy/cdaily/manifest.json`
 
-Mantén la configuración de la barra que habilita `davi.cdaily`. No modificar
-`/usr/share/omarchy/`. Recarga con `omarchy-restart-shell` y comprueba ambas barras.
+Habilita el widget `io.github.grizaceo.cdaily` en la configuración de la barra
+(`~/.config/omarchy/shell.json`). Si actualizas una instalación anterior con otro id,
+reemplázalo en `shell.json` por el del nuevo `manifest.json`.
+No modificar `/usr/share/omarchy/`. Recarga con `omarchy-restart-shell` y comprueba ambas barras.
 El worker guarda miniaturas en `$XDG_CACHE_HOME/cdaily-thumbnails` (por defecto
 `~/.cache/cdaily-thumbnails`); no necesita base de datos, credenciales ni daemon.
 

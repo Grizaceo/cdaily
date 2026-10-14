@@ -19,6 +19,8 @@
 
 ### Changed
 - `mcp[cli]` pinned to `<2` in `requirements.txt`.
+- **Personal data out of tracked files**: tracked `config.yaml` now holds public defaults only (port 7890, matching the README); keep your own settings in the gitignored `config.local.yaml` and point `CDAILY_CONFIG` at it. Local IPs, paths and names removed from docs and tests.
+- **Omarchy widget id** is now `io.github.grizaceo.cdaily` (layer namespace `cdaily-panel`); update the id in `~/.config/omarchy/shell.json` when reinstalling.
 
 ## [0.1.2.0] - 2026-06-22
 
@@ -45,7 +47,7 @@ First public open-source release.
 - **Black formatting**: Applied to 4 files (validate_url, routes/system, routes/articles, main.py).
 - **CI fix**: Changed CI trigger from `main` to `master` branch.
 - **Tests rewritten**: Now fully self-contained with in-memory SQLite fixtures (no blogwatcher-cli DB dependency).
-- **Personal references removed**: Neutralized "Cristóbal", "DAVI", "/home/gris/" across README, SPEC, QUICK_REFERENCE, app/__init__.py, and app/main.py. Only LICENSE retains copyright.
+- **Personal references removed**: Neutralized personal names and local paths across README, SPEC, QUICK_REFERENCE, app/__init__.py, and app/main.py. Only LICENSE retains copyright.
 - **Flake8 compliance**: Fixed line-length issues in tests, 0 errors.
 
 ### Security — Phase A (Containment)

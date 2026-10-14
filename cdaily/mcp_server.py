@@ -13,7 +13,7 @@ Register in ~/.claude.json:
         "cdaily": {
           "command": "python",
           "args": ["-m", "cdaily.mcp_server"],
-          "cwd": "/home/gris/.hermes/workspace/repos/cdaily"
+          "cwd": "/path/to/cdaily"
         }
       }
     }

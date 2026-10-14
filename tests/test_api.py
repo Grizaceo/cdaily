@@ -229,12 +229,12 @@ def test_api_scan_accepts_external_origin(client, monkeypatch):
 
     from cdaily.main import app
 
-    with TestClient(app, base_url="http://100.123.206.92:7890") as external_client:
+    with TestClient(app, base_url="http://100.64.0.10:7890") as external_client:
         data = external_client.post(
             "/api/scan",
             headers={
-                "origin": "http://100.123.206.92:7890",
-                "referer": "http://100.123.206.92:7890/",
+                "origin": "http://100.64.0.10:7890",
+                "referer": "http://100.64.0.10:7890/",
             },
         ).json()
 
