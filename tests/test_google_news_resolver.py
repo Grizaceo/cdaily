@@ -8,7 +8,9 @@ silent regression in the UI.
 from __future__ import annotations
 
 import asyncio
+import os
 import sqlite3
+from pathlib import Path
 
 import httpx
 import pytest
@@ -19,15 +21,15 @@ from cdaily.services.google_news_resolver import (
 )
 from cdaily.services.article_summary import _ArticleBlocked, _fetch_article_text
 
-DB = "/home/gris96/.blogwatcher-cli/blogwatcher-cli.db"
+DB = Path(os.environ.get("CDAILY_DB_PATH", Path.home() / ".blogwatcher-cli" / "blogwatcher-cli.db"))
 
 
 def _a_google_news_url() -> str | None:
+    if not DB.exists():
+        return None
     con = sqlite3.connect(DB)
     try:
-        row = con.execute(
-            "SELECT url FROM articles WHERE url LIKE '%news.google.com/rss/articles%' LIMIT 1"
-        ).fetchone()
+        row = con.execute("SELECT url FROM articles WHERE url LIKE '%news.google.com/rss/articles%' LIMIT 1").fetchone()
         return row[0] if row else None
     finally:
         con.close()
@@ -45,9 +47,11 @@ def test_resolve_google_news_url_live():
     url = _a_google_news_url()
     if url is None:
         pytest.skip("no Google News article in DB")
+
     async def run():
         async with httpx.AsyncClient(timeout=15.0) as cl:
             return await resolve_google_news_url(cl, url)
+
     resolved = asyncio.run(run())
     assert resolved is not None, "Google News URL failed to resolve"
     assert resolved.startswith("http")
@@ -61,19 +65,28 @@ def test_fetch_article_blocked_raises_article_blocked(monkeypatch):
     class _Resp:
         status_code = 403
         headers = {}
+
         def raise_for_status(self):
             raise httpx.HTTPStatusError("403", request=None, response=self)
+
         @property
         def is_redirect(self):
             return False
+
     class _Client:
-        async def __aenter__(self): return self
-        async def __aexit__(self, *a): return False
-        async def get(self, *a, **k): return _Resp()
-    monkeypatch.setattr(
-        "cdaily.services.article_summary.httpx.AsyncClient", lambda *a, **k: _Client()
-    )
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a):
+            return False
+
+        async def get(self, *a, **k):
+            return _Resp()
+
+    monkeypatch.setattr("cdaily.services.article_summary.httpx.AsyncClient", lambda *a, **k: _Client())
+
     async def run():
         await _fetch_article_text("https://www.nytimes.com/2026/10/07/world.html")
+
     with pytest.raises(_ArticleBlocked):
         asyncio.run(run())

@@ -15,9 +15,7 @@ effects, while still proving the safe-delete ordering:
 from __future__ import annotations
 
 import asyncio
-import os
 import sqlite3
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -56,8 +54,7 @@ def db_path(tmp_path, monkeypatch):
     """Fresh temp DB with the shared blogwatcher-cli + cdaily schema."""
     path = tmp_path / "blogwatcher-cli.db"
     conn = sqlite3.connect(path)
-    conn.executescript(
-        """
+    conn.executescript("""
         CREATE TABLE blogs (
             id INTEGER PRIMARY KEY,
             name TEXT NOT NULL,
@@ -100,8 +97,7 @@ def db_path(tmp_path, monkeypatch):
             rating INTEGER NOT NULL,
             rated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
-        """
-    )
+        """)
     conn.commit()
     conn.close()
 
@@ -113,15 +109,13 @@ def db_path(tmp_path, monkeypatch):
 def _seed(db_path: str, with_enrichment: bool = True) -> None:
     conn = sqlite3.connect(db_path)
     conn.execute("PRAGMA foreign_keys = ON")
-    conn.executescript(
-        """
+    conn.executescript("""
         INSERT INTO blogs (id, name, url, feed_url) VALUES
             (1, 'Ars Technica', 'https://arstechnica.com', 'https://feeds.arstechnica.com');
         INSERT INTO articles (id, blog_id, title, url) VALUES
             (1, 1, 'Rust in Linux', 'https://arstechnica.com/rust'),
             (2, 1, 'Copper strike', 'https://arstechnica.com/copper');
-        """
-    )
+        """)
     if with_enrichment:
         conn.execute("INSERT INTO cdaily_starred (id, article_id) VALUES (1, 1)")
         conn.execute("INSERT INTO cdaily_summaries (id, article_id, ai_summary) VALUES (1, 2, 'summary')")

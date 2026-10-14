@@ -6,7 +6,7 @@ import os
 import time
 import logging
 from typing import Optional
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 
 import httpx
 
@@ -18,16 +18,17 @@ WM_API_KEY = os.environ.get("WM_API_KEY", "")
 WM_SYNC_INTERVAL = int(os.environ.get("WM_SYNC_INTERVAL", "300"))  # 5min default
 WM_LIMIT = int(os.environ.get("WM_LIMIT", "50"))
 
+
 # ─── Data Classes ───────────────────────────────────────────────────
 @dataclass
 class WMEvent:
     title: str
     summary: str
     url: str
-    category: str          # cdaily category: news, security, tech, business, culture, science
-    severity: str          # LOW, MEDIUM, HIGH, CRITICAL
+    category: str  # cdaily category: news, security, tech, business, culture, science
+    severity: str  # LOW, MEDIUM, HIGH, CRITICAL
     source: str
-    published_at: int      # epoch ms
+    published_at: int  # epoch ms
     location_name: Optional[str] = None
     lat: Optional[float] = None
     lng: Optional[float] = None
@@ -124,6 +125,7 @@ def fetch_events(domain: str, path: str, limit: int = WM_LIMIT) -> list[WMEvent]
         if isinstance(ts, str):
             try:
                 from datetime import datetime
+
                 ts = int(datetime.fromisoformat(ts.replace("Z", "+00:00")).timestamp() * 1000)
             except Exception:
                 ts = 0
@@ -142,18 +144,20 @@ def fetch_events(domain: str, path: str, limit: int = WM_LIMIT) -> list[WMEvent]
             except (TypeError, ValueError):
                 lng = None
 
-        events.append(WMEvent(
-            title=str(title),
-            summary=str(summary)[:500],
-            url=str(event_url),
-            category=category,
-            severity=severity,
-            source=str(source),
-            published_at=int(ts) if ts else 0,
-            location_name=str(location_name) if location_name else None,
-            lat=lat,
-            lng=lng,
-        ))
+        events.append(
+            WMEvent(
+                title=str(title),
+                summary=str(summary)[:500],
+                url=str(event_url),
+                category=category,
+                severity=severity,
+                source=str(source),
+                published_at=int(ts) if ts else 0,
+                location_name=str(location_name) if location_name else None,
+                lat=lat,
+                lng=lng,
+            )
+        )
 
     logger.info("wm_fetch %s: %d events", domain, len(events))
     return events

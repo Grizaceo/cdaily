@@ -39,6 +39,4 @@ def register_resources(mcp: FastMCP) -> None:
             cur = conn.cursor()
             cur.execute("SELECT id, name, url FROM blogs ORDER BY name ASC")
             rows = cur.fetchall()
-        return json.dumps(
-            [slim_blog(dict(r)) for r in rows], ensure_ascii=False, indent=2
-        )
+        return json.dumps([slim_blog(dict(r)) for r in rows], ensure_ascii=False, indent=2)

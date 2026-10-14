@@ -101,7 +101,8 @@ async def remove_blog(blog_id: int) -> dict[str, int | str]:
                     (blog_id,),
                 )
                 cur.execute(
-                    "DELETE FROM cdaily_article_ratings WHERE article_id IN (SELECT id FROM articles WHERE blog_id = ?)",
+                    "DELETE FROM cdaily_article_ratings"
+                    " WHERE article_id IN (SELECT id FROM articles WHERE blog_id = ?)",
                     (blog_id,),
                 )
 

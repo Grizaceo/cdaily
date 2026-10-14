@@ -7,7 +7,6 @@ agent-oriented descriptions.
 
 from __future__ import annotations
 
-import json
 import os
 import subprocess
 
@@ -43,7 +42,12 @@ def _run(*args: str, timeout: int = 120) -> dict[str, object]:
     except subprocess.TimeoutExpired:
         return {"ok": False, "stdout": "", "stderr": "Timeout expired", "returncode": -1}
     except FileNotFoundError:
-        return {"ok": False, "stdout": "", "stderr": f"'{_BW_BIN}' not found. pip install blogwatcher-cli", "returncode": -1}
+        return {
+            "ok": False,
+            "stdout": "",
+            "stderr": f"'{_BW_BIN}' not found. pip install blogwatcher-cli",
+            "returncode": -1,
+        }
 
 
 # ─── Read tools ────────────────────────────────────────────────────────────────

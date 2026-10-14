@@ -244,10 +244,7 @@ def register_tools(mcp: FastMCP) -> None:
         """List configured blog sources. verbose adds feed_url, selector, last_scanned."""
         with closing(get_connection()) as conn:
             cur = conn.cursor()
-            cur.execute(
-                "SELECT id, name, url, feed_url, scrape_selector, last_scanned "
-                "FROM blogs ORDER BY name ASC"
-            )
+            cur.execute("SELECT id, name, url, feed_url, scrape_selector, last_scanned " "FROM blogs ORDER BY name ASC")
             rows = cur.fetchall()
         shaper = verbose_blog if verbose else slim_blog
         return {"count": len(rows), "sources": [shaper(dict(r)) for r in rows]}
@@ -260,9 +257,7 @@ def register_tools(mcp: FastMCP) -> None:
         scrape_selector: str | None = None,
     ) -> dict[str, Any]:
         """[MUTATES] Add a blog source via blogwatcher-cli."""
-        return await svc_add_blog(
-            name=name, url=url, feed_url=feed_url, scrape_selector=scrape_selector
-        )
+        return await svc_add_blog(name=name, url=url, feed_url=feed_url, scrape_selector=scrape_selector)
 
     @mcp.tool()
     async def sources_remove_apply(blog_id: int) -> dict[str, Any]:

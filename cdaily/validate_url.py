@@ -108,9 +108,7 @@ def _resolve_and_check(hostname: str) -> None:
         # If we can't resolve, we cannot prove it is safe -> block.
         # (Callers that must allow unknown hosts are expected to use
         #  allow_private=True, which never reaches this point.)
-        raise ValueError(
-            f"Could not resolve host '{hostname}' for SSRF validation: {exc}"
-        ) from exc
+        raise ValueError(f"Could not resolve host '{hostname}' for SSRF validation: {exc}") from exc
 
     if not infos:
         raise ValueError(f"Host '{hostname}' resolved to no addresses.")
@@ -123,9 +121,7 @@ def _resolve_and_check(hostname: str) -> None:
             # Not a parseable IP — be conservative.
             raise ValueError(f"Host '{hostname}' resolved to an invalid address: {addr}")
         if _ip_is_blocked(ip):
-            raise ValueError(
-                f"URL host '{hostname}' resolves to a blocked/reserved address: {ip}"
-            )
+            raise ValueError(f"URL host '{hostname}' resolves to a blocked/reserved address: {ip}")
 
 
 def validate_url(url: str, allow_private: bool = False) -> None:

@@ -53,8 +53,7 @@ _GARTURLREQ_CTX = [
 ]
 
 _UA = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 )
 
 
@@ -153,9 +152,7 @@ def _parse_batchexecute(text: str) -> list[tuple[str | None, str]]:
     return pairs
 
 
-async def resolve_google_news_url(
-    client: httpx.AsyncClient, source_url: str
-) -> str | None:
+async def resolve_google_news_url(client: httpx.AsyncClient, source_url: str) -> str | None:
     """Resolve a single Google News URL to the publisher URL.
 
     Returns the decoded URL, or None on any failure (best-effort). Never raises.

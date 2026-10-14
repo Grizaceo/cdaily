@@ -23,6 +23,7 @@ class _ArticleBlocked(RuntimeError):
     caller should fail fast with a clear message instead of burning attempts.
     """
 
+
 logger = logging.getLogger(__name__)
 
 # Patterns that commonly appear in provider error bodies when a credential is the
@@ -200,8 +201,10 @@ async def summarize_article(article_id: int, ai_prefs: dict[str, Any]) -> dict[s
     if is_google_news_url(url):
         async with httpx.AsyncClient(
             timeout=15.0,
-            headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"},
+            headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            },
         ) as gn_client:
             resolved = await resolve_google_news_url(gn_client, url)
         if resolved:

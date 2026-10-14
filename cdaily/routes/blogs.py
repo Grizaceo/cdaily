@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from contextlib import closing
-from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request, status
 
@@ -21,9 +20,7 @@ def get_all_blogs():
     try:
         with closing(get_connection()) as conn:
             cur = conn.cursor()
-            cur.execute(
-                "SELECT id, name, url, feed_url, scrape_selector, last_scanned FROM blogs ORDER BY name ASC"
-            )
+            cur.execute("SELECT id, name, url, feed_url, scrape_selector, last_scanned FROM blogs ORDER BY name ASC")
             rows = cur.fetchall()
             return [dict(row) for row in rows]
     except Exception as e:

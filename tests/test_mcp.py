@@ -22,8 +22,7 @@ def isolated_db(tmp_path, monkeypatch):
 
     db = tmp_path / "blogwatcher-cli.db"
     conn = sqlite3.connect(str(db))
-    conn.executescript(
-        """
+    conn.executescript("""
         CREATE TABLE blogs (
             id INTEGER PRIMARY KEY, name TEXT, url TEXT,
             feed_url TEXT, scrape_selector TEXT, last_scanned TEXT
@@ -36,7 +35,9 @@ def isolated_db(tmp_path, monkeypatch):
         CREATE TABLE cdaily_starred (id INTEGER PRIMARY KEY, article_id INTEGER UNIQUE);
         CREATE TABLE cdaily_summaries (id INTEGER PRIMARY KEY, article_id INTEGER UNIQUE, ai_summary TEXT);
         CREATE TABLE cdaily_article_images (id INTEGER PRIMARY KEY, article_id INTEGER UNIQUE, image_url TEXT);
-        CREATE TABLE cdaily_article_ratings (id INTEGER PRIMARY KEY, article_id INTEGER UNIQUE, rating INTEGER, rated_at TEXT);
+        CREATE TABLE cdaily_article_ratings (
+            id INTEGER PRIMARY KEY, article_id INTEGER UNIQUE, rating INTEGER, rated_at TEXT
+        );
 
         INSERT INTO blogs VALUES (1, 'TechCrunch', 'https://techcrunch.com', NULL, NULL, '2026-05-20');
         INSERT INTO blogs VALUES (2, 'BBC News', 'https://bbc.com/news', NULL, NULL, '2026-05-21');
@@ -50,8 +51,7 @@ def isolated_db(tmp_path, monkeypatch):
         INSERT INTO cdaily_summaries VALUES (1, 1, 'This is an AI-generated summary of article 1.');
         INSERT INTO cdaily_article_images VALUES (1, 2, 'https://img.example.com/bbc-climate.jpg');
         INSERT INTO cdaily_article_ratings VALUES (1, 1, 4, '2026-05-23');
-        """
-    )
+        """)
     conn.commit()
     conn.close()
 
@@ -59,22 +59,30 @@ def isolated_db(tmp_path, monkeypatch):
     from cdaily import config as cfg
 
     monkeypatch.setattr(cfg, "DB_PATH", Path(str(db)))
-    monkeypatch.setattr(cfg, "BLOG_CATEGORIES", {
-        "TechCrunch": "tech",
-        "BBC News": "science",
-        "Ars Technica": "tech",
-    })
+    monkeypatch.setattr(
+        cfg,
+        "BLOG_CATEGORIES",
+        {
+            "TechCrunch": "tech",
+            "BBC News": "science",
+            "Ars Technica": "tech",
+        },
+    )
     # personalization.py imports BLOG_CATEGORIES at module level, so we
     # must also inject the cache directly to bypass the stale import.
     from cdaily.repositories import personalization
 
     personalization._category_map.clear()
-    personalization._category_map.update({
-        "TechCrunch": "tech",
-        "BBC News": "science",
-        "Ars Technica": "tech",
-    })
+    personalization._category_map.update(
+        {
+            "TechCrunch": "tech",
+            "BBC News": "science",
+            "Ars Technica": "tech",
+        }
+    )
     yield db
+
+
 # ═══════════════════════════════════════════════════════════════════════
 # Registration tests (unchanged — keep existing coverage)
 # ═══════════════════════════════════════════════════════════════════════
@@ -290,8 +298,7 @@ def test_feed_digest_suggests_scan_when_empty(tmp_path, monkeypatch) -> None:
 
     db = tmp_path / "blogwatcher-cli.db"
     conn = sqlite3.connect(str(db))
-    conn.executescript(
-        """
+    conn.executescript("""
         CREATE TABLE blogs (id INTEGER PRIMARY KEY, name TEXT, url TEXT,
             feed_url TEXT, scrape_selector TEXT, last_scanned TEXT);
         CREATE TABLE articles (id INTEGER PRIMARY KEY, title TEXT, url TEXT,
@@ -299,9 +306,10 @@ def test_feed_digest_suggests_scan_when_empty(tmp_path, monkeypatch) -> None:
         CREATE TABLE cdaily_starred (id INTEGER PRIMARY KEY, article_id INTEGER UNIQUE);
         CREATE TABLE cdaily_summaries (id INTEGER PRIMARY KEY, article_id INTEGER UNIQUE, ai_summary TEXT);
         CREATE TABLE cdaily_article_images (id INTEGER PRIMARY KEY, article_id INTEGER UNIQUE, image_url TEXT);
-        CREATE TABLE cdaily_article_ratings (id INTEGER PRIMARY KEY, article_id INTEGER UNIQUE, rating INTEGER, rated_at TEXT);
-        """
-    )
+        CREATE TABLE cdaily_article_ratings (
+            id INTEGER PRIMARY KEY, article_id INTEGER UNIQUE, rating INTEGER, rated_at TEXT
+        );
+        """)
     conn.commit()
     conn.close()
 
@@ -555,8 +563,7 @@ def test_sources_list_empty_db(tmp_path, monkeypatch) -> None:
 
     db = tmp_path / "blogwatcher-cli.db"
     conn = sqlite3.connect(str(db))
-    conn.executescript(
-        """
+    conn.executescript("""
         CREATE TABLE blogs (id INTEGER PRIMARY KEY, name TEXT, url TEXT,
             feed_url TEXT, scrape_selector TEXT, last_scanned TEXT);
         CREATE TABLE articles (id INTEGER PRIMARY KEY, title TEXT, url TEXT,
@@ -564,9 +571,10 @@ def test_sources_list_empty_db(tmp_path, monkeypatch) -> None:
         CREATE TABLE cdaily_starred (id INTEGER PRIMARY KEY, article_id INTEGER UNIQUE);
         CREATE TABLE cdaily_summaries (id INTEGER PRIMARY KEY, article_id INTEGER UNIQUE, ai_summary TEXT);
         CREATE TABLE cdaily_article_images (id INTEGER PRIMARY KEY, article_id INTEGER UNIQUE, image_url TEXT);
-        CREATE TABLE cdaily_article_ratings (id INTEGER PRIMARY KEY, article_id INTEGER UNIQUE, rating INTEGER, rated_at TEXT);
-        """
-    )
+        CREATE TABLE cdaily_article_ratings (
+            id INTEGER PRIMARY KEY, article_id INTEGER UNIQUE, rating INTEGER, rated_at TEXT
+        );
+        """)
     conn.commit()
     conn.close()
 

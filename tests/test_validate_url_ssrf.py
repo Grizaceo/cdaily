@@ -37,26 +37,26 @@ def _af_inet6():
 @pytest.mark.parametrize(
     "url",
     [
-        "http://169.254.169.254/latest/meta-data/",   # S1 cloud metadata
-        "https://169.254.1.1/",                        # S1 link-local
-        "http://172.16.0.5/",                          # S2 Docker
-        "http://172.17.0.2/",                          # S2 Docker default bridge
-        "http://172.31.255.255/",                      # S2 Docker upper
-        "http://100.64.0.1/",                          # S2 CGNAT
-        "http://100.127.255.254/",                     # S2 CGNAT upper
-        "http://10.0.0.1/",                            # RFC1918
-        "http://192.168.1.1/",                         # RFC1918
-        "http://127.0.0.1/",                           # loopback
-        "http://localhost/",                           # loopback host
-        "http://[::1]/",                               # IPv6 loopback
-        "http://[fe80::1]/",                           # S2 IPv6 link-local
-        "http://[fc00::1]/",                           # S2 IPv6 ULA
-        "http://[::ffff:127.0.0.1]/",                  # IPv4-mapped IPv6 -> loopback
-        "http://[::ffff:169.254.169.254]/",            # IPv4-mapped IPv6 -> metadata
-        "file:///etc/passwd",                          # wrong scheme
-        "gopher://127.0.0.1:11211/",                   # wrong scheme
-        "http://foo.local/",                           # blocked suffix
-        "http://foo.internal/",                        # blocked suffix
+        "http://169.254.169.254/latest/meta-data/",  # S1 cloud metadata
+        "https://169.254.1.1/",  # S1 link-local
+        "http://172.16.0.5/",  # S2 Docker
+        "http://172.17.0.2/",  # S2 Docker default bridge
+        "http://172.31.255.255/",  # S2 Docker upper
+        "http://100.64.0.1/",  # S2 CGNAT
+        "http://100.127.255.254/",  # S2 CGNAT upper
+        "http://10.0.0.1/",  # RFC1918
+        "http://192.168.1.1/",  # RFC1918
+        "http://127.0.0.1/",  # loopback
+        "http://localhost/",  # loopback host
+        "http://[::1]/",  # IPv6 loopback
+        "http://[fe80::1]/",  # S2 IPv6 link-local
+        "http://[fc00::1]/",  # S2 IPv6 ULA
+        "http://[::ffff:127.0.0.1]/",  # IPv4-mapped IPv6 -> loopback
+        "http://[::ffff:169.254.169.254]/",  # IPv4-mapped IPv6 -> metadata
+        "file:///etc/passwd",  # wrong scheme
+        "gopher://127.0.0.1:11211/",  # wrong scheme
+        "http://foo.local/",  # blocked suffix
+        "http://foo.internal/",  # blocked suffix
     ],
 )
 def test_blocked_hosts_rejected(url):
@@ -138,6 +138,7 @@ def test_dns_public_ip_allowed():
 
 
 # --- allow_private preserves local AI endpoint (no DNS, no IP checks) -------
+
 
 def test_allow_private_allows_localhost():
     # S2/S3 rule: local Ollama endpoint must keep working.
